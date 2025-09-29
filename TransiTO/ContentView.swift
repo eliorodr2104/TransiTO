@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct ContentView: View {
-    @EnvironmentObject private var arrivalsViewModel: ArrivalsViewmodel
+    @EnvironmentObject private var arrivalsViewModel  : ArrivalsViewmodel
     @EnvironmentObject private var gtfsStaticViewModel: GTFSStaticViewModel
     
     var body: some View {
