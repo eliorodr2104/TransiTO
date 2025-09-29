@@ -1,0 +1,100 @@
+{
+  "fill" : {
+    "linear-gradient" : [
+      "display-p3:0.27975,0.65045,0.92268,1.00000",
+      "display-p3:0.04706,0.23529,0.48627,1.00000"
+    ]
+  },
+  "groups" : [
+    {
+      "layers" : [
+        {
+          "blend-mode" : "normal",
+          "fill-specializations" : [
+            {
+              "value" : {
+                "linear-gradient" : [
+                  "display-p3:0.87557,0.82919,0.24574,1.00000",
+                  "srgb:0.98824,0.93725,0.23529,1.00000"
+                ]
+              }
+            },
+            {
+              "appearance" : "dark",
+              "value" : {
+                "linear-gradient" : [
+                  "display-p3:0.54021,0.51159,0.15162,1.00000",
+                  "srgb:0.98824,0.93725,0.23529,1.00000"
+                ]
+              }
+            }
+          ],
+          "glass" : true,
+          "image-name" : "star-svgrepo-com.svg",
+          "name" : "star-svgrepo-com",
+          "position" : {
+            "scale" : 0.7,
+            "translation-in-points" : [
+              159.98239017483837,
+              -137.7713306067701
+            ]
+          }
+        },
+        {
+          "fill-specializations" : [
+            {
+              "value" : {
+                "linear-gradient" : [
+                  "display-p3:0.03787,0.19647,0.41329,1.00000",
+                  "srgb:0.00000,0.00000,0.00000,1.00000"
+                ]
+              }
+            },
+            {
+              "appearance" : "dark",
+              "value" : {
+                "linear-gradient" : [
+                  "display-p3:0.17108,0.29337,0.45602,1.00000",
+                  "display-p3:0.03551,0.18424,0.38754,1.00000"
+                ]
+              }
+            },
+            {
+              "appearance" : "tinted",
+              "value" : {
+                "linear-gradient" : [
+                  "display-p3:0.04706,0.23529,0.48627,1.00000",
+                  "display-p3:1.00000,1.00000,1.00000,1.00000"
+                ]
+              }
+            }
+          ],
+          "glass" : true,
+          "image-name" : "Senza-titolo-2_20250911001926.svg",
+          "name" : "Senza-titolo-2_20250911001926",
+          "position" : {
+            "scale" : 0.2,
+            "translation-in-points" : [
+              -78.10473272259804,
+              -77.82447180571785
+            ]
+          }
+        }
+      ],
+      "shadow" : {
+        "kind" : "neutral",
+        "opacity" : 0.5
+      },
+      "translucency" : {
+        "enabled" : true,
+        "value" : 0.5
+      }
+    }
+  ],
+  "supported-platforms" : {
+    "circles" : [
+      "watchOS"
+    ],
+    "squares" : "shared"
+  }
+}
