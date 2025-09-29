@@ -94,7 +94,8 @@ struct MapView: View {
                 self.locationManager.moveCamera(
                     to: CLLocationCoordinate2D(
                         latitude: cluster.stops[0].latitude,
-                        longitude: cluster.stops[0].longitude)
+                        longitude: cluster.stops[0].longitude
+                    )
                 )
             }
     }
@@ -171,13 +172,13 @@ struct MapView: View {
     }
     
     // MARK: - Clustering min distance based
-    private func clusterStopsByDistance(stops: [StopInfo], minDistanceMeters: Double) -> [Cluster] {
+    private func clusterStopsByDistance(stops: [AllInfoStop], minDistanceMeters: Double) -> [Cluster] {
         var clusters: [Cluster] = []
         var unvisited = stops
         
         while !unvisited.isEmpty {
             let stop = unvisited.removeFirst()
-            var clusterStops: [StopInfo] = [stop]
+            var clusterStops: [AllInfoStop] = [stop]
             
             unvisited.removeAll { other in
                 if distance(

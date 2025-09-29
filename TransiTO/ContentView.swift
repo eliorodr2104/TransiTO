@@ -8,14 +8,21 @@
 import SwiftUI
 
 struct ContentView: View {
+    @EnvironmentObject private var arrivalsViewModel: ArrivalsViewmodel
+    @EnvironmentObject private var gtfsStaticViewModel: GTFSStaticViewModel
+    
     var body: some View {
-        VStack {
-            Image(systemName: "globe")
-                .imageScale(.large)
-                .foregroundStyle(.tint)
-            Text("Hello, world!")
+        
+        ZStack(alignment: .center) {
+            
+            HomeView()
+                .disabled(gtfsStaticViewModel.isLoading)
+            
+            if gtfsStaticViewModel.isLoading {
+                LoadingPopUp()
+            }
+                
         }
-        .padding()
     }
 }
 

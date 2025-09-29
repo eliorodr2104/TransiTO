@@ -10,7 +10,7 @@ internal import Combine
 
 class FavoritesViewModel: ObservableObject {
 
-    @Published var favoriteslines: [String: [Line]] = [:]
+    @Published var favoriteslines: [String: InfoStop] = [:]
     @Published var favoritesStops: [String] = []
     
     private static let jsonStorageFile = "favorites_stops.json"
@@ -34,7 +34,7 @@ class FavoritesViewModel: ObservableObject {
         
         do {
             let data       = try Data(contentsOf: fileURL)
-            let decoded    = try JSONDecoder().decode([String: [Line]].self, from: data)
+            let decoded    = try JSONDecoder().decode([String: InfoStop].self, from: data)
             favoriteslines = decoded
             
             updateStops()
@@ -56,9 +56,9 @@ class FavoritesViewModel: ObservableObject {
         }
     }
     
-    func addStop(to stopId: String) {
+    func addStop(to stopId: String, info infoStop: InfoStop) {
         if favoriteslines[stopId] == nil {
-            favoriteslines[stopId] = []
+            favoriteslines[stopId] = infoStop
             
             updateStops()
             save()
@@ -67,22 +67,31 @@ class FavoritesViewModel: ObservableObject {
     
     // MARK: - Add line
     func addLine(to stopId: String, lineNumber: String, isPrefer: Bool = false) {
-        let line = Line(number: lineNumber, isFocus: isPrefer)
+        let newLine = Line(number: lineNumber, isFocus: isPrefer)
         
-        if favoriteslines[stopId] != nil {
-            if !favoriteslines[stopId]!.contains(line) && isPrefer {
-                
-                favoriteslines[stopId] = favoriteslines[stopId]!.map { line in
-                    var copy = line
-                    copy.isFocus = false
-                    
-                    return copy
-                }
-
-            } else { favoriteslines[stopId]?.append(line) }
+        guard var info = favoriteslines[stopId] else {
+            // Stop must exist to add a line (coordinates are required to create InfoStop)
+            return
+        }
+        
+        if let existingIndex = info.lines.firstIndex(where: { $0.number == lineNumber }), isPrefer {
             
-        } else { favoriteslines[stopId] = [line] }
+            // Line already exists; update focus if requested
+            for idx in info.lines.indices {
+                info.lines[idx].isFocus = (idx == existingIndex)
+            }
+            
+        } else if isPrefer {
+            
+            // Line does not exist; clear focus if adding as preferred, then append
+            for idx in info.lines.indices {
+                info.lines[idx].isFocus = false
+            }
+            
+            info.lines.append(newLine)
+        }
         
+        favoriteslines[stopId] = info
         save()
     }
     
@@ -95,10 +104,14 @@ class FavoritesViewModel: ObservableObject {
     
     // MARK: - Remove line
     func removeLine(from stopId: String, lineNumber: String) {
-        favoriteslines[stopId]?.removeAll { $0.number == lineNumber }
+        guard var info = favoriteslines[stopId] else { return }
         
-        if favoriteslines[stopId]?.isEmpty == true {
+        info.lines.removeAll { $0.number == lineNumber }
+        
+        if info.lines.isEmpty {
             favoriteslines.removeValue(forKey: stopId)
+        } else {
+            favoriteslines[stopId] = info
         }
         
         save()
@@ -107,25 +120,24 @@ class FavoritesViewModel: ObservableObject {
     
     // MARK: - Set focus line
     func setFocusLine(stopId: String, lineNumber: String) {
-        for (stop, var lines) in favoriteslines {
-            
-            for index in lines.indices {
-                lines[index].isFocus = (stop == stopId && lines[index].number == lineNumber)
+        for (stop, var info) in favoriteslines {
+            for index in info.lines.indices {
+                info.lines[index].isFocus = (stop == stopId && info.lines[index].number == lineNumber)
             }
-            
-            favoriteslines[stop] = lines
+            favoriteslines[stop] = info
         }
         
         save()
     }
     
     func removeFocusLine(in stopId: String, for lineNumber: String) {
-        guard var lineList = favoriteslines[stopId], let index = lineList.firstIndex(where: { $0.number == lineNumber }) else {
+        guard var info = favoriteslines[stopId],
+              let index = info.lines.firstIndex(where: { $0.number == lineNumber }) else {
             return
         }
         
-        lineList[index].isFocus = false
-        favoriteslines[stopId] = lineList
+        info.lines[index].isFocus = false
+        favoriteslines[stopId] = info
         
         save()
     }
@@ -133,17 +145,17 @@ class FavoritesViewModel: ObservableObject {
     
     // MARK: - Get lines
     func getLines(to stopId: String) -> [Line] {
-        return favoriteslines[stopId] ?? []
+        return favoriteslines[stopId]?.lines ?? []
     }
     
     // MARK: - Get single line
     func getLine(in stopId: String, for lineNumber: String) -> Line? {
-        return favoriteslines[stopId]?.first(where: { $0.number == lineNumber })
+        return favoriteslines[stopId]?.lines.first(where: { $0.number == lineNumber })
     }
     
     // MARK: - Get focus line
     func getFocusLine(to stopId: String) -> Line? {
-        return favoriteslines[stopId]?.first(where: { $0.isFocus })
+        return favoriteslines[stopId]?.lines.first(where: { $0.isFocus })
     }
     
     // MARK: - Update id stops

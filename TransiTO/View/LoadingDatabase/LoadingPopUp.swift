@@ -11,9 +11,9 @@ struct LoadingPopUp: View {
     var body: some View {
         
         VStack {
-            ProgressView("Update Data...")
+            ProgressView("Update DataBase...")
                 .padding()
-                .background(.ultraThinMaterial)
+                .background(.thinMaterial)
                 .cornerRadius(12)
                 .shadow(radius: 8)
         }

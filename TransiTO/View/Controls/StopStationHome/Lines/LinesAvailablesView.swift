@@ -10,35 +10,48 @@ import SwiftUI
 struct LinesAvailablesView: View {
     
     @EnvironmentObject private var navigationViemModel: NavigationViewModel
+    @EnvironmentObject private var arrivalsViewModel: ArrivalsViewmodel
         
-    let stopRoutes: [String]
-    let stopCode  : String
+    let stopInfo: AllInfoStop
     
     var body: some View {
+        let lastItem = stopInfo.routes.last
         
+        // List for rapresenting line stops
         VStack(alignment: .leading) {
+            
+            // Title list
             Text("Partenze")
                 .font(.title3)
                 .fontWeight(.semibold)
                 .padding(.horizontal)
             
-            LazyVStack(spacing: 15) {
+            // Lazy vertical stack
+            LazyVStack(spacing: 14) {
                 
-                ForEach(stopRoutes, id: \.self) { line in
+                ForEach(stopInfo.routes, id: \.self) { line in
                     
                     LineRowStateView(
                         line: line,
-                        stopCode: stopCode
+                        stopCode: stopInfo.stopCode
                         
-                    ) {
-                        self.navigationViemModel.changeLineFocus(to: line)
-                    }
+                    ) { direction in if let direct = direction { self.navigationViemModel.changeLineFocus(to: line, direction: direct) } }
+                        .id(line)
+                        .padding(.bottom, lastItem == line ? 25 : 0)
                     
                 }
             }
         }
-        
-        
-        
+        .task(id: self.navigationViemModel.stopSelected?.id) {
+            guard let stopInfo = self.navigationViemModel.stopSelected else { return }
+            
+            do {
+                while !Task.isCancelled {
+                    await self.arrivalsViewModel.fetchStopArrivals(for: stopInfo.stopCode)
+                                        
+                    try? await Task.sleep(nanoseconds: 2_000_000_000) // 45_000_000_000 = 45s
+                }
+            }
+        }
     }
 }

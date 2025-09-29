@@ -8,6 +8,6 @@
 import Foundation
 
 struct GTFSCache: Codable {
-    let stops: [String: StopInfo]
+    let stops: [String: AllInfoStop]
     let fetchedAt: Date
 }

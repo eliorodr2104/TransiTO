@@ -23,7 +23,7 @@ struct HomeView: View {
     @State private var safeAreaBottomInset: CGFloat            = 0
 
     /// State variables
-    @State private var cameraTarget          : CLLocationCoordinate2D? = nil
+    @State private var cameraTarget       : CLLocationCoordinate2D? = nil
     
     var body: some View {
         

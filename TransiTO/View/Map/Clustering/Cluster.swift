@@ -9,7 +9,7 @@ import CoreLocation
 
 /// Cluster Struct
 struct Cluster: Identifiable {
-    let stops: [StopInfo]
+    let stops: [AllInfoStop]
     let coordinate: CLLocationCoordinate2D
     var count: Int { stops.count }
     

@@ -7,7 +7,12 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		1FC83F432E834C470082DC67 /* TransiTO_Icon.icon in Resources */ = {isa = PBXBuildFile; fileRef = 1FC83F422E834C470082DC67 /* TransiTO_Icon.icon */; };
+		1FC83F442E834C470082DC67 /* TransiTO_Icon.icon in Resources */ = {isa = PBXBuildFile; fileRef = 1FC83F422E834C470082DC67 /* TransiTO_Icon.icon */; };
 		1FD6243D2E82E708003FE29C /* TransiTO Watch App.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = 1FD6243C2E82E708003FE29C /* TransiTO Watch App.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		1FD624872E82E823003FE29C /* ZIPFoundation in Frameworks */ = {isa = PBXBuildFile; productRef = 1FD624862E82E823003FE29C /* ZIPFoundation */; };
+		1FD625182E82E9EE003FE29C /* ZIPFoundation in Frameworks */ = {isa = PBXBuildFile; productRef = 1FD625172E82E9EE003FE29C /* ZIPFoundation */; };
+		1FD6251B2E82EA0A003FE29C /* SwiftUI Apple Watch Decimal Pad in Frameworks */ = {isa = PBXBuildFile; productRef = 1FD6251A2E82EA0A003FE29C /* SwiftUI Apple Watch Decimal Pad */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -35,13 +40,27 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		1FC83F422E834C470082DC67 /* TransiTO_Icon.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = TransiTO_Icon.icon; sourceTree = "<group>"; };
 		1FD6242F2E82E706003FE29C /* TransiTO.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TransiTO.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		1FD6243C2E82E708003FE29C /* TransiTO Watch App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "TransiTO Watch App.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		1FD626082E82F631003FE29C /* Exceptions for "TransiTO" folder in "TransiTO" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 1FD6242E2E82E706003FE29C /* TransiTO */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		1FD624312E82E706003FE29C /* TransiTO */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				1FD626082E82F631003FE29C /* Exceptions for "TransiTO" folder in "TransiTO" target */,
+			);
 			path = TransiTO;
 			sourceTree = "<group>";
 		};
@@ -57,6 +76,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				1FD624872E82E823003FE29C /* ZIPFoundation in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -64,6 +84,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				1FD625182E82E9EE003FE29C /* ZIPFoundation in Frameworks */,
+				1FD6251B2E82EA0A003FE29C /* SwiftUI Apple Watch Decimal Pad in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -73,6 +95,7 @@
 		1FD624262E82E705003FE29C = {
 			isa = PBXGroup;
 			children = (
+				1FC83F422E834C470082DC67 /* TransiTO_Icon.icon */,
 				1FD624312E82E706003FE29C /* TransiTO */,
 				1FD624402E82E708003FE29C /* TransiTO Watch App */,
 				1FD624302E82E706003FE29C /* Products */,
@@ -110,6 +133,7 @@
 			);
 			name = TransiTO;
 			packageProductDependencies = (
+				1FD624862E82E823003FE29C /* ZIPFoundation */,
 			);
 			productName = TransiTO;
 			productReference = 1FD6242F2E82E706003FE29C /* TransiTO.app */;
@@ -132,6 +156,8 @@
 			);
 			name = "TransiTO Watch App";
 			packageProductDependencies = (
+				1FD625172E82E9EE003FE29C /* ZIPFoundation */,
+				1FD6251A2E82EA0A003FE29C /* SwiftUI Apple Watch Decimal Pad */,
 			);
 			productName = "TransiTO Watch App";
 			productReference = 1FD6243C2E82E708003FE29C /* TransiTO Watch App.app */;
@@ -164,6 +190,10 @@
 			);
 			mainGroup = 1FD624262E82E705003FE29C;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				1FD624852E82E823003FE29C /* XCRemoteSwiftPackageReference "ZIPFoundation" */,
+				1FD625192E82EA0A003FE29C /* XCRemoteSwiftPackageReference "SwiftUI-Apple-Watch-Decimal-Pad" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 1FD624302E82E706003FE29C /* Products */;
 			projectDirPath = "";
@@ -180,6 +210,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				1FC83F442E834C470082DC67 /* TransiTO_Icon.icon in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -187,6 +218,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				1FC83F432E834C470082DC67 /* TransiTO_Icon.icon in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -404,19 +436,23 @@
 		1FD6244E2E82E709003FE29C /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_APPICON_NAME = TransiTO_Icon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = TransiTO/TransiTO.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 8KZQJ4JUGS;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = TransiTO/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = TransiTO;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Need location to show stops";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -427,31 +463,39 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Debug;
 		};
 		1FD6244F2E82E709003FE29C /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_APPICON_NAME = TransiTO_Icon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = TransiTO/TransiTO.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 8KZQJ4JUGS;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = TransiTO/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = TransiTO;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Need location to show stops";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -462,12 +506,16 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 				VALIDATE_PRODUCT = YES;
 			};
 			name = Release;
@@ -503,6 +551,43 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		1FD624852E82E823003FE29C /* XCRemoteSwiftPackageReference "ZIPFoundation" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/weichsel/ZIPFoundation.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.9.19;
+			};
+		};
+		1FD625192E82EA0A003FE29C /* XCRemoteSwiftPackageReference "SwiftUI-Apple-Watch-Decimal-Pad" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/ApplebaumIan/SwiftUI-Apple-Watch-Decimal-Pad.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.0.4;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		1FD624862E82E823003FE29C /* ZIPFoundation */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 1FD624852E82E823003FE29C /* XCRemoteSwiftPackageReference "ZIPFoundation" */;
+			productName = ZIPFoundation;
+		};
+		1FD625172E82E9EE003FE29C /* ZIPFoundation */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 1FD624852E82E823003FE29C /* XCRemoteSwiftPackageReference "ZIPFoundation" */;
+			productName = ZIPFoundation;
+		};
+		1FD6251A2E82EA0A003FE29C /* SwiftUI Apple Watch Decimal Pad */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 1FD625192E82EA0A003FE29C /* XCRemoteSwiftPackageReference "SwiftUI-Apple-Watch-Decimal-Pad" */;
+			productName = "SwiftUI Apple Watch Decimal Pad";
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 1FD624272E82E706003FE29C /* Project object */;
 }

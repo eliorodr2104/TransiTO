@@ -9,67 +9,65 @@ import SwiftUI
 
 struct LineRowStateView: View {
     
+    /// Enviroment object for manage arrivals.
     @EnvironmentObject private var arrivalsViewModel: ArrivalsViewmodel
     
-    @State private var firstArrival: Arrival? = nil
-    
+    // Attributes struct
     let line    : String
     let stopCode: String
-    let onClick: () -> Void
-    
-    var arrivals: [Arrival] {
-        arrivalsViewModel.getLineArrivals(for: stopCode, in: line)
-    }
-    
+    let onClick : (_ direction: String?) -> Void
     
     var body: some View {
-        
-        Button(action: onClick) {
+        /// Get arrivals for view model
+        let arrival = arrivalsViewModel.getLineArrivals(for: stopCode, in: line).first
+
+        VStack(alignment: .leading, spacing: 10) {
             
-            VStack(alignment: .leading, spacing: 10) {
-                HStack(alignment: .firstTextBaseline, spacing: 5) {
-                    ZStack {
-                        Circle()
-                            .fill(Color.green)
-                            .frame(width: 35, height: 35)
-                        
-                        Image(systemName: "tram")
-                            .font(.headline)
-                        
-                    }
+            HStack(alignment: .firstTextBaseline, spacing: 5) {
+                ZStack {
+                    Circle()
+                        .fill(.tint)
+                        .frame(width: 35, height: 35)
                     
-                    Text(line)
+                    Image(systemName: "tram")
                         .font(.headline)
-                }
-                
-                Divider()
-                
-                HStack {
-                    Text(firstArrival?.direction ?? "-")
-                        .font(.subheadline)
-                    
-                    Spacer()
-                    
-                    Text("\(arrivalsViewModel.getTimeRemainingArrival(for: stopCode, in: line) ?? 0) min")
-                        .font(.subheadline)
+                        .foregroundStyle(.primary)
                     
                 }
                 
+                Text(line)
+                    .font(.headline)
+                    .foregroundStyle(.primary)
             }
-            .padding(15)
-            .background(.ultraThinMaterial)
-            .clipShape(RoundedRectangle(cornerRadius: 18))
-            .padding(.horizontal)
-            .onChange(of: arrivals) { _, newArrivals in
-                if let first = arrivalsViewModel.getLineArrivals(for: stopCode, in: line).first { firstArrival = first }
+            
+            Divider()
+            
+            HStack {
+                Text(arrival?.direction ?? "-")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                
+                
+                Spacer()
+                
+                Text("\(arrivalsViewModel.getTimeRemainingArrival(for: stopCode, in: line) ?? 0) min")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                
             }
-            .onAppear { firstArrival = arrivals.first }
+            
         }
+        .padding(15)
+        .background(.ultraThinMaterial)
+        .clipShape(RoundedRectangle(cornerRadius: 23))
+        .padding(.horizontal)
+        .onTapGesture { onClick(arrival?.direction) }
+        
     }
 }
 
 #Preview {
-    LineRowStateView(line: "9", stopCode: "558") {
+    LineRowStateView(line: "9", stopCode: "558") { _ in
         
     }
 }

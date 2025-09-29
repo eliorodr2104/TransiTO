@@ -12,15 +12,21 @@ internal import Combine
 
 @MainActor
 class GTFSStaticViewModel: ObservableObject {
-    // MARK: - Published
-    @Published private(set) var stopsDict: [String: StopInfo] = [:]
     
-    // Quadratic tree
-    var quadTree: QuadTree<StopInfo>?
+    // Published original data
+    @Published private(set) var stopsDict: [String: AllInfoStop] = [:]
     
-    // state
+    // Quad tree
+    var quadTree: QuadTree<AllInfoStop>?
+    
+    // download / processing state
     @Published var isLoading = false
     @Published var loadingProgress: Double = 0.0
+    
+    // search for UI
+    @Published var searchQuery     : String        = ""
+    @Published var searchResults   : [AllInfoStop] = []
+    @Published var isSearchIndexing: Bool          = false
 
     // config
     private let gtfsURL = URL(string: "https://www.gtt.to.it/open_data/gtt_gtfs.zip")!
@@ -28,16 +34,74 @@ class GTFSStaticViewModel: ObservableObject {
     private let processedDataURL: URL
     private let metaURL: URL
     private let cacheExpirationDays = 7
-
+    
+    // search service
+    private let searchIndex = StopsSearchIndexService()
+    private var cancellables = Set<AnyCancellable>()
+    
+    // MARK: - Cache meta
+    struct CacheMeta: Codable {
+        let fetchedAt: Date
+        let remoteLastModified: String?
+    }
+    
     // MARK: - Init
     init() {
         self.cacheDirectory = FileManager.default.temporaryDirectory.appendingPathComponent("GTT_GTFS")
         self.processedDataURL = cacheDirectory.appendingPathComponent("gtfs_cache.json")
         self.metaURL = cacheDirectory.appendingPathComponent("gtfs_cache_meta.json")
         self.isLoading = true
+        
+        $searchQuery
+            .debounce(for: .milliseconds(150), scheduler: RunLoop.main)
+            .removeDuplicates()
+            .sink { [weak self] query in
+                guard let self = self else { return }
+                let q = query.trimmingCharacters(in: .whitespacesAndNewlines)
+                
+                if q.isEmpty {
+                    self.searchResults = []
+                    return
+                }
+                
+                // launch Task to call async search (keeps UI responsive)
+                Task {
+                    let results = await self.searchIndex.search(q, maxResults: 100)
+                    await MainActor.run {
+                        self.searchResults = results
+                    }
+                }
+            }
+            .store(in: &cancellables)
+        
+        
         Task {
             await loadGTFSData()
             buildQuadTree()
+            buildSearchIndex()
+        }
+    }
+    
+    // MARK: - Helper to get sorted array of stops when needed (non-public)
+    private func stopsArraySortedByCode() -> [AllInfoStop] {
+        return Array(stopsDict.values)
+            .sorted { Int($0.stopCode) ?? 0 < Int($1.stopCode) ?? 0 }
+        
+    }
+
+    // MARK: - Build search index (call after stopsDict is populated)
+    private func buildSearchIndex() {
+        let array = stopsArraySortedByCode()
+        guard !array.isEmpty else { return }
+        
+        isSearchIndexing = true
+        
+        Task {
+            await searchIndex.build(from: array)
+            await MainActor.run {
+                self.isSearchIndexing = false
+            }
+            
         }
     }
 
@@ -75,7 +139,7 @@ class GTFSStaticViewModel: ObservableObject {
                                maxLat: allStops.map{$0.latitude}.max() ?? 0,
                                minLng: allStops.map{$0.longitude}.min() ?? 0,
                                maxLng: allStops.map{$0.longitude}.max() ?? 0)
-        let tree = QuadTree<StopInfo>(bounds: bbox)
+        let tree = QuadTree<AllInfoStop>(bounds: bbox)
         
         for stop in allStops {
             let _ = tree.insert(coordinate: CLLocationCoordinate2D(latitude: stop.latitude, longitude: stop.longitude), value: stop)
@@ -99,21 +163,18 @@ class GTFSStaticViewModel: ObservableObject {
         return nil
     }
 
-    // MARK: - Cache meta
-    struct CacheMeta: Codable {
-        let fetchedAt: Date
-        let remoteLastModified: String?
-    }
-
     private func loadCacheMeta() -> CacheMeta? {
         guard FileManager.default.fileExists(atPath: metaURL.path) else { return nil }
+        
         do {
             let data = try Data(contentsOf: metaURL)
             guard !data.isEmpty else { try? FileManager.default.removeItem(at: metaURL); return nil }
             return try JSONDecoder().decode(CacheMeta.self, from: data)
+            
         } catch {
             try? FileManager.default.removeItem(at: metaURL)
             return nil
+            
         }
     }
 
@@ -294,7 +355,7 @@ class GTFSStaticViewModel: ObservableObject {
         }
 
         // build stops dictionary - usando stopCode come chiave
-        var stopsDict: [String: StopInfo] = [:]
+        var stopsDict: [String: AllInfoStop] = [:]
         
         for row in stopsCSV.dropFirst() {
             if row.count > max(stopIdIndex, stopCodeIndex, stopNameIndex, stopLatIndex, stopLonIndex) {
@@ -306,7 +367,7 @@ class GTFSStaticViewModel: ObservableObject {
                 let city = stopCityMap[sid] ?? "Unknown"
                 let routesForStop = stopRoutes[sid] ?? []
 
-                let stop = StopInfo(
+                let stop = AllInfoStop(
                     stopId: sid,
                     stopCode: code,
                     stopName: name,

@@ -7,15 +7,21 @@
 
 import SwiftUI
 
+/// Contains all view app
 struct ContentView: View {
+    
+    /// The view model for management navigation
+    @EnvironmentObject var navigationViewModel: NavigationViewModel
+    
     var body: some View {
-        VStack {
-            Image(systemName: "globe")
-                .imageScale(.large)
-                .foregroundStyle(.tint)
-            Text("Hello, world!")
+        
+        // Navigation stack for management the navigation
+        NavigationStack(path: $navigationViewModel.path) {
+            
+            // Stop station list, show all stop save stop station
+            StopStationsList()
+                .navigationDestination(for: StopDestination.self) { destination in LineTransportListView(nameStop: destination.stopId) }
         }
-        .padding()
     }
 }
 
