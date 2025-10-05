@@ -37,7 +37,9 @@ struct BottomSheet: View {
             if hasSelection { sheetDetent = .large }
         }
         .onChange(of: self.stopsViewModel.searchQuery) { _, newValue in
-            self.navigationViemModel.changeStateBottomSheet(to: newValue == "" ? .EMPTY_HOME : .SHOW_SEARCH_STOP)
+            if self.navigationViemModel.stateView == .EMPTY_HOME {
+                self.navigationViemModel.changeStateBottomSheet(to: newValue == "" ? .EMPTY_HOME : .SHOW_SEARCH_STOP)
+            }
         }
     }
     
@@ -51,20 +53,22 @@ struct BottomSheet: View {
                 
             case .SHOW_STOPS_INFO:
                 // Click stop and show them info, arrives and lines
-                if let currentStop = self.navigationViemModel.stopSelected {
-                    LinesAvailablesView(stopInfo: currentStop)
-                }
+                if let currentStop = self.navigationViemModel.stopSelected { LinesAvailablesView(stopInfo: currentStop) }
                 
             case .SHOW_LINE_INFO:
-                // TODO Yet implement info line in select stop
-                EmptyView()
+                // Show current arrival state
+                if let lineSelected = navigationViemModel.lineSelected, let stopSelected = navigationViemModel.stopSelected {
+                    CurrentArrivalInfoView(
+                        lineSelected: lineSelected,
+                        stopSelected: stopSelected
+                    )
+                }
                 
             case .SHOW_SEARCH_STOP:
-                ListStopsMatched() {
-                    isFocused = false
-                    // Delete because is delete current stop
-                    //stopsViewModel.searchQuery  = ""
-                }
+                ListStopsMatched() { isFocused = false }
+                
+            case .SHOW_ADD_FAVORITE:
+                SearchStopsFavoritesView(sheetDetent: $sheetDetent)
             }
         }
     }
@@ -108,6 +112,9 @@ struct BottomSheet: View {
             case .SHOW_LINE_INFO:
                 titleLine
                 Spacer()
+                
+            case .SHOW_ADD_FAVORITE:
+                titleAddStop
             }
         }
     }
@@ -127,10 +134,11 @@ struct BottomSheet: View {
             if let _ = self.navigationViemModel.stopSelected {
                 fetchTask?.cancel()
                 fetchTask = nil
-                self.navigationViemModel.clear()
                 
                 sheetDetent = .height(80)
             }
+            
+            self.navigationViemModel.clear()
 
         } label: {
             ZStack {
@@ -139,7 +147,7 @@ struct BottomSheet: View {
                     Image(systemName: "xmark")
                         .font(.title2)
                         .fontWeight(.semibold)
-                        .foregroundStyle(.primary)
+                        .foregroundStyle(.white)
                         .frame(width: 48, height: 48)
                         .glassEffect(in: .circle)
                         .transition(.blurReplace)
@@ -161,17 +169,20 @@ struct BottomSheet: View {
     private var homeBodyBottomSheet: some View {
         VStack(
             alignment: .leading,
-            spacing: 5
+            spacing: 10
         ) {
             
-            // Tittle list
+            // Title list
             Text("Preferiti")
                 .font(.title3)
                 .fontWeight(.bold)
                 .foregroundStyle(.primary)
             
             // Lazy row contains prefered
-            RowFavoritesStops()
+            RowFavoritesStops(sheetDetent: $sheetDetent) {
+                if !self.isFocused { self.isFocused = true }
+                self.navigationViemModel.changeStateBottomSheet(to: .SHOW_ADD_FAVORITE)
+            }
                 .padding(.leading, 10)
             
         }
@@ -213,20 +224,46 @@ struct BottomSheet: View {
             // Control line selected is not nil
             if let currentLine = self.navigationViemModel.lineSelected {
                 
-                VStack(alignment: .leading, spacing: 5) {
-                    Text(currentLine.name)
-                        .font(.headline)
-                        .fontWeight(.bold)
+                HStack(spacing: 10) {
+                    ZStack {
+                        Circle()
+                            .fill(.tint)
+                            .frame(width: 40, height: 40)
+                        
+                        Text(currentLine.name)
+                            .font(.title2)
+                            .fontWeight(.bold)
+                    }
                     
-                    Text(currentLine.direction)
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                    
+                    VStack(alignment: .leading, spacing: 5) {
+                        Text("\(currentLine.name) (\(currentLine.typeVehicle == 0 ? "Tram" : currentLine.typeVehicle == 3 ? "Bus" : "Metro"))")
+                            .font(.title3)
+                            .fontWeight(.bold)
+                        
+                        Text(currentLine.direction)
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                        
+                    }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 
             } else { EmptyView() }
             
+        }
+    }
+    
+    // MARK: - Title add favorite stop
+    private var titleAddStop: some View {
+        
+        Group {
+            HStack(alignment: .center) {
+                Text("Aggiungi fermata")
+                    .font(.title3)
+                    .fontWeight(.bold)
+                
+            }
+            .frame(maxWidth: .infinity, alignment: .center)
         }
     }
 }

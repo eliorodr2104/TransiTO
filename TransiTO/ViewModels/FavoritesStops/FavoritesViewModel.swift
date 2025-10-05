@@ -42,6 +42,7 @@ class FavoritesViewModel: ObservableObject {
         } catch {
             print("Error loading json: \(error)")
             favoriteslines = [:]
+            
         }
     }
     

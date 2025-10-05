@@ -17,9 +17,12 @@ struct FavoriteStopItemView: View {
         ZStack {
             
             Circle()
-                .frame(width: 35, height: 35)
+                .frame(width: 65, height: 65)
+                .foregroundStyle(.green.opacity(0.2))
             
             Text(nameStop)
+                .font(.title3)
+                .foregroundStyle(.green)
             
         }
         .onTapGesture(perform: onClick)

@@ -10,4 +10,5 @@ enum StateView {
     case SHOW_STOPS_INFO
     case SHOW_LINE_INFO
     case SHOW_SEARCH_STOP
+    case SHOW_ADD_FAVORITE
 }

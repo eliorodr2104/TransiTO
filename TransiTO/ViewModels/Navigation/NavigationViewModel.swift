@@ -11,7 +11,7 @@ internal import Combine
 class NavigationViewModel: ObservableObject {
     
     @Published private(set) var stopSelected: AllInfoStop?                       = nil
-    @Published private(set) var lineSelected: (name: String, direction: String)? = nil
+    @Published private(set) var lineSelected: (name: String, direction: String, typeVehicle: Int)? = nil
     @Published private(set) var stateView   : StateView                          = .EMPTY_HOME
     
     func changeStateBottomSheet(to newView: StateView) {
@@ -23,8 +23,8 @@ class NavigationViewModel: ObservableObject {
         self.stateView = .SHOW_STOPS_INFO
     }
     
-    func changeLineFocus(to line: String, direction: String) {
-        self.lineSelected = (line, direction)
+    func changeLineFocus(to line: String, direction: String, typeVehicle: Int) {
+        self.lineSelected = (line, direction, typeVehicle)
         self.stateView = .SHOW_LINE_INFO
     }
 

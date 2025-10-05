@@ -13,146 +13,187 @@ internal import Combine
 @MainActor
 class GTFSStaticViewModel: ObservableObject {
     
-    // Published original data
+    /// Published stops information, this is dictionary for computational complexity O(1)
     @Published private(set) var stopsDict: [String: AllInfoStop] = [:]
     
-    // Quad tree
-    var quadTree: QuadTree<AllInfoStop>?
+    /// Quad tree for manage stops on map
+    private(set) var quadTree: QuadTree<AllInfoStop>?
     
-    // download / processing state
-    @Published var isLoading = false
-    @Published var loadingProgress: Double = 0.0
+    /// Download and processing state
+    @Published private(set) var isLoading      : Bool   = false
     
-    // search for UI
-    @Published var searchQuery     : String        = ""
-    @Published var searchResults   : [AllInfoStop] = []
-    @Published var isSearchIndexing: Bool          = false
+    
+    /// State for search stop on UI
+    @Published private(set) var searchResults   : [AllInfoStop] = []
+    @Published              var searchQuery     : String        = ""
+    @Published private      var isSearchIndexing: Bool          = false
 
-    // config
-    private let gtfsURL = URL(string: "https://www.gtt.to.it/open_data/gtt_gtfs.zip")!
-    private let cacheDirectory: URL
-    private let processedDataURL: URL
-    private let metaURL: URL
-    private let cacheExpirationDays = 7
+    /// Config setup
+    private let gtfsURL            : URL? = URL(string: "https://www.gtt.to.it/open_data/gtt_gtfs.zip") ?? nil
+    private let cacheDirectory     : URL
+    private let processedDataURL   : URL
+    private let metaURL            : URL
+    private let cacheExpirationDays: UInt8 = 7
     
-    // search service
+    /// Seearch service
     private let searchIndex = StopsSearchIndexService()
     private var cancellables = Set<AnyCancellable>()
     
-    // MARK: - Cache meta
-    struct CacheMeta: Codable {
-        let fetchedAt: Date
-        let remoteLastModified: String?
-    }
-    
-    // MARK: - Init
+    // MARK: - Constructor View model
     init() {
-        self.cacheDirectory = FileManager.default.temporaryDirectory.appendingPathComponent("GTT_GTFS")
-        self.processedDataURL = cacheDirectory.appendingPathComponent("gtfs_cache.json")
-        self.metaURL = cacheDirectory.appendingPathComponent("gtfs_cache_meta.json")
+        // Get cache data if exist
+        self.cacheDirectory   = FileManager
+                                    .default
+                                    .temporaryDirectory
+                                    .appendingPathComponent("GTT_GTFS")
+        self.processedDataURL = cacheDirectory
+                                    .appendingPathComponent("gtfs_cache.json")
+        self.metaURL          = cacheDirectory
+                                    .appendingPathComponent("gtfs_cache_meta.json")
+        
+        // Set loading data true
         self.isLoading = true
         
         $searchQuery
-            .debounce(for: .milliseconds(150), scheduler: RunLoop.main)
+            .debounce(
+                for: .milliseconds(150),
+                scheduler: RunLoop.main
+            )
             .removeDuplicates()
             .sink { [weak self] query in
+                
+                // Control if query exist for search value
                 guard let self = self else { return }
-                let q = query.trimmingCharacters(in: .whitespacesAndNewlines)
+                let currentQuery = query.trimmingCharacters(in: .whitespacesAndNewlines)
                 
-                if q.isEmpty {
-                    self.searchResults = []
-                    return
-                }
+                if currentQuery.isEmpty { self.searchResults = []; return }
                 
-                // launch Task to call async search (keeps UI responsive)
-                Task {
-                    let results = await self.searchIndex.search(q, maxResults: 100)
-                    await MainActor.run {
-                        self.searchResults = results
-                    }
+                // launch Task to call async search
+                Task { [weak self] in
+                    guard let self = self else { return }
+                    
+                    let results        = await self.searchIndex.search(currentQuery, maxResults: 100)
+                    self.searchResults = results
                 }
+
             }
-            .store(in: &cancellables)
+            .store(in: &cancellables) // Store value in cancellables
         
         
-        Task {
-            await loadGTFSData()
+        // Load data or update
+        Task { await loadGTFSData()
+            
             buildQuadTree()
             buildSearchIndex()
         }
     }
     
-    // MARK: - Helper to get sorted array of stops when needed (non-public)
+    // MARK: - Searching Func's
+    
+    /// Helper to get sorted array of stops when needed
     private func stopsArraySortedByCode() -> [AllInfoStop] {
-        return Array(stopsDict.values)
-            .sorted { Int($0.stopCode) ?? 0 < Int($1.stopCode) ?? 0 }
-        
+        return Array(stopsDict.values) .sorted { Int($0.stopCode) ?? 0 < Int($1.stopCode) ?? 0 }
     }
-
-    // MARK: - Build search index (call after stopsDict is populated)
+    
+    /// Build search index, this func is call after stopsDict is populated
     private func buildSearchIndex() {
+        
+        // Populate array and control if is empty then is true exit
         let array = stopsArraySortedByCode()
         guard !array.isEmpty else { return }
         
         isSearchIndexing = true
         
+        // Build in background index for searching
         Task {
             await searchIndex.build(from: array)
-            await MainActor.run {
-                self.isSearchIndexing = false
-            }
-            
+            await MainActor.run { self.isSearchIndexing = false }
         }
     }
+    
+    // MARK: - Manage GTFS
+    
+    /// Control if cached is expired
+    private func isCacheExpired(cache: GTFSCache) -> Bool {
+        return Calendar.current.dateComponents([.day], from: cache.fetchedAt, to: Date()).day ?? 8 > self.cacheExpirationDays
+    }
 
-    // MARK: - Public load
+    /// Control exist cached data, if not exit then download new GTFS and load data
     func loadGTFSData(forceRefresh: Bool = false) async {
-        loadingProgress = 0.05
-
+        
+        // If exist cached data, set this on current values
         if !forceRefresh, let cache = loadProcessedDataFromCache(), !isCacheExpired(cache: cache) {
             self.stopsDict = cache.stops
-            loadingProgress = 1.0
-            isLoading = false
+            self.isLoading = false
+            
+            return // Exit program
+        }
+        
+        // if gtfs is nil exit
+        guard let url = gtfsURL else { return }
+
+        let remoteLastModified = try? await fetchRemoteLastModified(url: url)
+        
+        // Get data from URL
+        if !forceRefresh,
+           let meta   = loadCacheMeta(),
+           let cached = loadProcessedDataFromCache(),
+           meta.remoteLastModified == remoteLastModified,
+           FileManager.default.fileExists(atPath: processedDataURL.path,
+                                          
+        ) {
+            self.stopsDict = cached.stops
+            self.isLoading = false
+            
             return
         }
 
-        let remoteLM = try? await fetchRemoteLastModified(url: gtfsURL)
-        if !forceRefresh, let meta = loadCacheMeta(), meta.remoteLastModified == remoteLM,
-           FileManager.default.fileExists(atPath: processedDataURL.path) {
-            if let cached = loadProcessedDataFromCache() {
-                self.stopsDict = cached.stops
-                loadingProgress = 1.0
-                isLoading = false
-                return
-            }
-        }
-
-        await downloadAndProcessGTFS(remoteLastModified: remoteLM)
+        // Download and load new gtfs data
+        await downloadAndProcessGTFS(remoteLastModified: remoteLastModified)
     }
     
-    private func buildQuadTree() {
-        guard !stopsDict.isEmpty else { return }
+    /// Download gtfs and process then
+    private func downloadAndProcessGTFS(remoteLastModified: String?) async {
+        guard let url = gtfsURL else { return }
         
-        let allStops = Array(stopsDict.values)
-        // bbox globale (puoi ottimizzare con min/max reali delle fermate)
-        let bbox = BoundingBox(minLat: allStops.map{$0.latitude}.min() ?? 0,
-                               maxLat: allStops.map{$0.latitude}.max() ?? 0,
-                               minLng: allStops.map{$0.longitude}.min() ?? 0,
-                               maxLng: allStops.map{$0.longitude}.max() ?? 0)
-        let tree = QuadTree<AllInfoStop>(bounds: bbox)
-        
-        for stop in allStops {
-            let _ = tree.insert(coordinate: CLLocationCoordinate2D(latitude: stop.latitude, longitude: stop.longitude), value: stop)
-        }
-        
-        self.quadTree = tree
-    }
+        do {
+            // Set variable to load mode
+            self.isLoading = true
 
-    // MARK: - Remote HEAD
+            let (data, _) = try await URLSession.shared.data(from: url)
+            try await processGTFSData(data: data)
+
+            // Save cached data
+            let meta = CacheMeta(fetchedAt: Date(), remoteLastModified: remoteLastModified)
+            if !saveCacheMeta(meta) {
+                throw CacheError.SaveFailed
+            }
+            
+            isLoading = false
+            
+        } catch {
+            // Control type error
+            if let currentError = error as? CacheError {
+                print("DEBUG: Save GTFS error: \(currentError)")
+                
+            } else {
+                print("DEBUG: Error to manage download gtfs: \(error)")
+            }
+            
+            // Remove all reference on error data
+            try? FileManager.default.removeItem(at: processedDataURL)
+            try? FileManager.default.removeItem(at: metaURL)
+            
+            isLoading = false
+        }
+    }
+    
+    /// Get last modified file
     private func fetchRemoteLastModified(url: URL) async throws -> String? {
         var req = URLRequest(url: url)
         req.httpMethod = "HEAD"
         let (_, response) = try await URLSession.shared.data(for: req)
+        
         guard let http = response as? HTTPURLResponse else { return nil }
 
         for (k, v) in http.allHeaderFields {
@@ -160,242 +201,31 @@ class GTFSStaticViewModel: ObservableObject {
                 return v as? String
             }
         }
+        
         return nil
     }
-
+    
+    /// Load cache data if exist
     private func loadCacheMeta() -> CacheMeta? {
-        guard FileManager.default.fileExists(atPath: metaURL.path) else { return nil }
+        // Control path exist else return
+        guard FileManager.default.fileExists(atPath: self.metaURL.path) else { return nil }
         
         do {
             let data = try Data(contentsOf: metaURL)
+            
+            // Contro get data is not empty
             guard !data.isEmpty else { try? FileManager.default.removeItem(at: metaURL); return nil }
+            
             return try JSONDecoder().decode(CacheMeta.self, from: data)
             
-        } catch {
+        } catch { // If occour one error remove data and return nil value
             try? FileManager.default.removeItem(at: metaURL)
+            
             return nil
-            
         }
     }
-
-    private func saveCacheMeta(_ meta: CacheMeta) {
-        do {
-            try FileManager.default.createDirectory(at: cacheDirectory, withIntermediateDirectories: true)
-            let data = try JSONEncoder().encode(meta)
-            try data.write(to: metaURL, options: .atomic)
-            
-        } catch { }
-    }
-
-    private func isCacheExpired(cache: GTFSCache) -> Bool {
-        let days = Calendar.current.dateComponents([.day], from: cache.fetchedAt, to: Date()).day ?? 999
-        
-        return days > cacheExpirationDays
-    }
-
-    // MARK: - Download + process
-    private func downloadAndProcessGTFS(remoteLastModified: String?) async {
-        do {
-            isLoading = true
-            loadingProgress = 0.1
-            let (data, _) = try await URLSession.shared.data(from: gtfsURL)
-            loadingProgress = 0.3
-            try await processGTFSData(data: data)
-
-            let meta = CacheMeta(fetchedAt: Date(), remoteLastModified: remoteLastModified)
-            saveCacheMeta(meta)
-
-            loadingProgress = 1.0
-            isLoading = false
-        } catch {
-            print("Error downloading/processing GTFS: \(error)")
-            try? FileManager.default.removeItem(at: processedDataURL)
-            try? FileManager.default.removeItem(at: metaURL)
-            isLoading = false
-            loadingProgress = 0.0
-        }
-    }
-
-    // MARK: - CSV parsing helpers
-    private func splitCSVLine(_ line: String, separator: Character) -> [String] {
-        var fields: [String] = []
-        var cur = ""
-        var inQuotes = false
-        let chars = Array(line)
-        var i = 0
-        while i < chars.count {
-            let ch = chars[i]
-            if ch == "\"" {
-                if inQuotes && i + 1 < chars.count && chars[i + 1] == "\"" {
-                    cur.append("\""); i += 1
-                } else {
-                    inQuotes.toggle()
-                }
-            } else if ch == separator && !inQuotes {
-                fields.append(cur); cur = ""
-            } else {
-                cur.append(ch)
-            }
-            i += 1
-        }
-        fields.append(cur)
-        return fields.map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-    }
-
-    private func readCSV(file: URL) throws -> [[String]] {
-        guard FileManager.default.fileExists(atPath: file.path) else {
-            throw NSError(domain: "GTFS", code: 10, userInfo: [NSLocalizedDescriptionKey: "File not found: \(file.lastPathComponent)"])
-        }
-        let content = try String(contentsOf: file, encoding: .utf8)
-        let rawLines = content.components(separatedBy: .newlines)
-        let lines = rawLines.filter { !$0.trimmingCharacters(in: .whitespaces).isEmpty }
-        guard let first = lines.first else { return [] }
-        let separator: Character = first.contains(";") ? ";" : ","
-        return lines.map { splitCSVLine($0, separator: separator) }
-    }
-
-    // MARK: - Process GTFS (main)
-    private func processGTFSData(data: Data) async throws {
-        try FileManager.default.createDirectory(at: cacheDirectory, withIntermediateDirectories: true)
-        let zipURL = cacheDirectory.appendingPathComponent("gtt_gtfs.zip")
-        try data.write(to: zipURL, options: .atomic)
-
-        let extractDir = cacheDirectory.appendingPathComponent("gtfs_extract")
-        if FileManager.default.fileExists(atPath: extractDir.path) {
-            try FileManager.default.removeItem(at: extractDir)
-        }
-        try FileManager.default.createDirectory(at: extractDir, withIntermediateDirectories: true)
-        try FileManager.default.unzipItem(at: zipURL, to: extractDir)
-
-        loadingProgress = 0.55
-
-        // paths
-        let stopsPath = extractDir.appendingPathComponent("stops.txt")
-        let routesPath = extractDir.appendingPathComponent("routes.txt")
-        let tripsPath = extractDir.appendingPathComponent("trips.txt")
-        let stopTimesPath = extractDir.appendingPathComponent("stop_times.txt")
-        let stopsAttrPath = extractDir.appendingPathComponent("stop_attributes.txt")
-
-        // read csv
-        let stopsCSV = try readCSV(file: stopsPath)
-        let routesCSV = try readCSV(file: routesPath)
-        let tripsCSV = try readCSV(file: tripsPath)
-        let stopTimesCSV = try readCSV(file: stopTimesPath)
-        let stopsAttrCSV = try readCSV(file: stopsAttrPath)
-        loadingProgress = 0.7
-
-        func idx(_ col: String, header: [String]) throws -> Int {
-            guard let i = header.firstIndex(of: col) else {
-                throw NSError(domain: "GTFS", code: 1, userInfo: [NSLocalizedDescriptionKey: "Column \(col) not found"])
-            }
-            return i
-        }
-
-        // headers
-        let stopsHeader = stopsCSV.first!
-        let routesHeader = routesCSV.first!
-        let tripsHeader = tripsCSV.first!
-        let stopTimesHeader = stopTimesCSV.first!
-        let stopsAttrHeader = stopsAttrCSV.first!
-
-        let stopIdIndex = try idx("stop_id", header: stopsHeader)
-        let stopCodeIndex = try idx("stop_code", header: stopsHeader)
-        let stopNameIndex = try idx("stop_name", header: stopsHeader)
-        let stopLatIndex = try idx("stop_lat", header: stopsHeader)
-        let stopLonIndex = try idx("stop_lon", header: stopsHeader)
-
-        let routeIdIndex = try idx("route_id", header: routesHeader)
-        let routeShortIndex = try idx("route_short_name", header: routesHeader)
-
-        let tripIdIndex = try idx("trip_id", header: tripsHeader)
-        let tripRouteIdIndex = try idx("route_id", header: tripsHeader)
-
-        let stopTimesTripIdIndex = try idx("trip_id", header: stopTimesHeader)
-        let stopTimesStopIdIndex = try idx("stop_id", header: stopTimesHeader)
-
-        let stopAttrIdIndex = try idx("stop_id", header: stopsAttrHeader)
-        let stopAttrCityIndex = try idx("stop_city", header: stopsAttrHeader)
-
-        // parse routes
-        var routes: [String: String] = [:] // routeId -> shortName
-        for row in routesCSV.dropFirst() {
-            if row.count > max(routeIdIndex, routeShortIndex) {
-                let id = row[routeIdIndex]
-                let short = row[routeShortIndex]
-                routes[id] = short
-            }
-        }
-
-        // parse trips
-        var trips: [String: String] = [:] // tripId -> routeId
-        for row in tripsCSV.dropFirst() {
-            if row.count > max(tripIdIndex, tripRouteIdIndex) {
-                trips[row[tripIdIndex]] = row[tripRouteIdIndex]
-            }
-        }
-
-        // parse stops_attributes
-        var stopCityMap: [String: String] = [:]
-        for row in stopsAttrCSV.dropFirst() {
-            if row.count > max(stopAttrIdIndex, stopAttrCityIndex) {
-                stopCityMap[row[stopAttrIdIndex]] = row[stopAttrCityIndex]
-            }
-        }
-
-        // map stopId -> set of routes
-        var stopRoutes: [String: Set<String>] = [:]
-        for row in stopTimesCSV.dropFirst() {
-            if row.count > max(stopTimesTripIdIndex, stopTimesStopIdIndex) {
-                let tid = row[stopTimesTripIdIndex]
-                let sid = row[stopTimesStopIdIndex]
-                if let rid = trips[tid], let rshort = routes[rid] {
-                    stopRoutes[sid, default: []].insert(rshort)
-                }
-            }
-        }
-
-        // build stops dictionary - usando stopCode come chiave
-        var stopsDict: [String: AllInfoStop] = [:]
-        
-        for row in stopsCSV.dropFirst() {
-            if row.count > max(stopIdIndex, stopCodeIndex, stopNameIndex, stopLatIndex, stopLonIndex) {
-                let sid = row[stopIdIndex]
-                let code = row[stopCodeIndex]
-                let name = row[stopNameIndex]
-                let lat = Double(row[stopLatIndex]) ?? 0.0
-                let lon = Double(row[stopLonIndex]) ?? 0.0
-                let city = stopCityMap[sid] ?? "Unknown"
-                let routesForStop = stopRoutes[sid] ?? []
-
-                let stop = AllInfoStop(
-                    stopId: sid,
-                    stopCode: code,
-                    stopName: name,
-                    city: city,
-                    latitude: lat,
-                    longitude: lon,
-                    routes: Array(routesForStop).sorted()
-                )
-                
-                // Usa stopCode come chiave invece di stopId
-                stopsDict[code] = stop
-            }
-        }
-        
-        // save cache
-        let cache = GTFSCache(stops: stopsDict, fetchedAt: Date())
-        let encoder = JSONEncoder()
-        encoder.outputFormatting = .prettyPrinted
-        let jsonData = try encoder.encode(cache)
-        try jsonData.write(to: processedDataURL, options: .atomic)
-
-        self.stopsDict = stopsDict
-
-        try? FileManager.default.removeItem(at: zipURL)
-        try? FileManager.default.removeItem(at: extractDir)
-    }
-
-    // MARK: - Cache load
+    
+    /// Load Cache data
     private func loadProcessedDataFromCache() -> GTFSCache? {
         do {
             guard FileManager.default.fileExists(atPath: processedDataURL.path) else { return nil }
@@ -412,7 +242,283 @@ class GTFSStaticViewModel: ObservableObject {
             print("Error loading cache: \(error)")
             try? FileManager.default.removeItem(at: processedDataURL)
             try? FileManager.default.removeItem(at: metaURL)
+            
             return nil
         }
+    }
+
+    /// Save new gtfs in cache
+    private func saveCacheMeta(_ meta: CacheMeta) -> Bool {
+        do {
+            try FileManager.default.createDirectory(at: cacheDirectory, withIntermediateDirectories: true)
+            let data = try JSONEncoder().encode(meta)
+            try data.write(to: metaURL, options: .atomic)
+            
+            return true
+            
+        } catch { return false }
+    }
+    
+    // MARK: - Manage CSV GTFS file
+    
+    /// Read GTFS file
+    private func readCSV(file: URL) throws -> [[String]] {
+        
+        // Control file exist on device, else return error
+        guard FileManager.default.fileExists(atPath: file.path) else {
+            throw NSError(
+                domain: "GTFS",
+                code: 10,
+                userInfo: [NSLocalizedDescriptionKey: "File not found: \(file.lastPathComponent)"]
+            )
+        }
+        
+        // Set content CSV
+        let content  = try String(contentsOf: file, encoding: .utf8)
+        let rawLines = content.components(separatedBy: .newlines)
+        let lines    = rawLines.filter { !$0.trimmingCharacters(in: .whitespaces).isEmpty }
+        
+        // If line not exist return empty value
+        guard let first = lines.first else { return [] }
+        
+        let separator: Character = first.contains(";") ? ";" : ","
+        
+        return lines.map { splitCSVLine($0, separator: separator) }
+    }
+
+    /// Process GTFS files
+    private func processGTFSData(data: Data) async throws {
+        // Create temp dir for extraction zip
+        try FileManager.default.createDirectory(at: cacheDirectory, withIntermediateDirectories: true)
+        
+        // Extract zip data
+        let zipURL = cacheDirectory.appendingPathComponent("gtt_gtfs.zip")
+        try data.write(to: zipURL, options: .atomic)
+        let extractDir = cacheDirectory.appendingPathComponent("gtfs_extract")
+        
+        // Contro extract dir exist then delete old data
+        if FileManager.default.fileExists(atPath: extractDir.path) {
+            try FileManager.default.removeItem(at: extractDir)
+        }
+        
+        // Create new cached data
+        try FileManager.default.createDirectory(at: extractDir, withIntermediateDirectories: true)
+        try FileManager.default.unzipItem(at: zipURL, to: extractDir)
+
+
+        // Set CSV paths
+        let stopsPath     = extractDir.appendingPathComponent("stops.txt")
+        let routesPath    = extractDir.appendingPathComponent("routes.txt")
+        let tripsPath     = extractDir.appendingPathComponent("trips.txt")
+        let stopTimesPath = extractDir.appendingPathComponent("stop_times.txt")
+        let stopsAttrPath = extractDir.appendingPathComponent("stop_attributes.txt")
+
+        // Read CSV
+        let stopsCSV     = try readCSV(file: stopsPath)
+        let routesCSV    = try readCSV(file: routesPath)
+        let tripsCSV     = try readCSV(file: tripsPath)
+        let stopTimesCSV = try readCSV(file: stopTimesPath)
+        let stopsAttrCSV = try readCSV(file: stopsAttrPath)
+
+        /// Get index header
+        func getHeaderIndex(_ column: String, header: [String]) throws -> Int {
+            guard let i = header.firstIndex(of: column) else {
+                throw NSError(domain: "GTFS", code: 1, userInfo: [NSLocalizedDescriptionKey: "Column \(column) not found"])
+            }
+            
+            return i
+        }
+
+        // Get headers
+        let stopsHeader     = stopsCSV.first!
+        let routesHeader    = routesCSV.first!
+        let tripsHeader     = tripsCSV.first!
+        let stopTimesHeader = stopTimesCSV.first!
+        let stopsAttrHeader = stopsAttrCSV.first!
+
+        // Get index for header
+        let stopIdIndex          = try getHeaderIndex("stop_id",           header: stopsHeader)
+        let stopCodeIndex        = try getHeaderIndex("stop_code",         header: stopsHeader)
+        let stopNameIndex        = try getHeaderIndex("stop_name",         header: stopsHeader)
+        let stopLatIndex         = try getHeaderIndex("stop_lat",          header: stopsHeader)
+        let stopLonIndex         = try getHeaderIndex("stop_lon",          header: stopsHeader)
+
+        let routeIdIndex         = try getHeaderIndex("route_id",         header: routesHeader)
+        let routeShortIndex      = try getHeaderIndex("route_short_name", header: routesHeader)
+        let routeTypeIndex       = try getHeaderIndex("route_type",       header: routesHeader)
+
+        let tripIdIndex          = try getHeaderIndex("trip_id",          header: tripsHeader)
+        let tripRouteIdIndex     = try getHeaderIndex("route_id",         header: tripsHeader)
+
+        let stopTimesTripIdIndex = try getHeaderIndex("trip_id",          header: stopTimesHeader)
+        let stopTimesStopIdIndex = try getHeaderIndex("stop_id",          header: stopTimesHeader)
+
+        let stopAttrIdIndex      = try getHeaderIndex("stop_id",          header: stopsAttrHeader)
+        let stopAttrCityIndex    = try getHeaderIndex("stop_city",        header: stopsAttrHeader)
+
+        // Parse all routes
+        var routes: [String: RouteInfo] = [:]
+        for row in routesCSV.dropFirst() {
+            if row.count > max(routeIdIndex, routeShortIndex, routeTypeIndex) {
+                let id     = row[routeIdIndex]
+                let short  = row[routeShortIndex]
+                let type   = Int(row[routeTypeIndex]) ?? -1
+                
+                routes[id] = RouteInfo(shortName: short, type: type)
+            }
+        }
+        
+        // Parse all trips
+        var trips: [String: String] = [:]
+        
+        for row in tripsCSV.dropFirst() {
+            if row.count > max(tripIdIndex, tripRouteIdIndex) {
+                trips[row[tripIdIndex]] = row[tripRouteIdIndex]
+                
+            }
+        }
+
+        // Parse all stops_attributes
+        var stopCityMap: [String: String] = [:]
+        
+        for row in stopsAttrCSV.dropFirst() {
+            if row.count > max(stopAttrIdIndex, stopAttrCityIndex) {
+                stopCityMap[row[stopAttrIdIndex]] = row[stopAttrCityIndex]
+                
+            }
+        }
+
+        // Map stopId -> set of routes
+        var stopRoutes: [String: Set<RouteInfo>] = [:]
+        for row in stopTimesCSV.dropFirst() {
+            if row.count > max(stopTimesTripIdIndex, stopTimesStopIdIndex) {
+                let tid = row[stopTimesTripIdIndex]
+                let sid = row[stopTimesStopIdIndex]
+                
+                if let rid = trips[tid], let routeInfo = routes[rid] {
+                    stopRoutes[sid, default: []].insert(routeInfo)
+                }
+                
+            }
+        }
+
+        // build stops dictionary and use stopCode with key
+        var stopsDict: [String: AllInfoStop] = [:]
+        
+        for row in stopsCSV.dropFirst() {
+            
+            if row.count > max(stopIdIndex, stopCodeIndex, stopNameIndex, stopLatIndex, stopLonIndex) {
+                let sid = row[stopIdIndex]
+                let code = row[stopCodeIndex]
+                let name = row[stopNameIndex]
+                let lat = Double(row[stopLatIndex]) ?? 0.0
+                let lon = Double(row[stopLonIndex]) ?? 0.0
+                let city = stopCityMap[sid] ?? "Unknown"
+                let routesForStop = stopRoutes[sid] ?? []
+
+                let stop = AllInfoStop(
+                    stopId: sid,
+                    stopCode: code,
+                    stopName: name,
+                    city: city,
+                    latitude: lat,
+                    longitude: lon,
+                    routes: Array(routesForStop).sorted { $0.shortName > $1.shortName }
+                )
+                
+                // Use stopCode with key
+                stopsDict[code] = stop
+            }
+        }
+        
+        // save cache
+        let cache   = GTFSCache(stops: stopsDict, fetchedAt: Date())
+        let encoder = JSONEncoder()
+        
+        encoder.outputFormatting = .prettyPrinted
+        
+        let jsonData = try encoder.encode(cache)
+        try jsonData.write(to: processedDataURL, options: .atomic)
+
+        self.stopsDict = stopsDict
+
+        // Remove temp cached data
+        try? FileManager.default.removeItem(at: zipURL)
+        try? FileManager.default.removeItem(at: extractDir)
+    }
+    
+    /// CSV parsing helpers for split lines
+    private func splitCSVLine(_ line: String, separator: Character) -> [String] {
+        var fields: [String] = []
+        var cur = ""
+        var inQuotes = false
+        let chars = Array(line)
+        
+        var i = 0
+        while i < chars.count {
+            let ch = chars[i]
+            
+            if ch == "\"" {
+                if inQuotes && i + 1 < chars.count && chars[i + 1] == "\"" {
+                    cur.append("\"")
+                    i += 1
+                } else {
+                    inQuotes.toggle()
+                }
+            } else if ch == separator && !inQuotes {
+                fields.append(cur.trimmingCharacters(in: .whitespacesAndNewlines))
+                cur = ""
+                
+            } else {
+                cur.append(ch)
+            }
+            
+            i += 1
+        }
+        
+        fields.append(cur.trimmingCharacters(in: .whitespacesAndNewlines))
+        
+        return fields
+    }
+
+    
+    // MARK: - Manage Quad tree
+    
+    /// Build quadratic tree for manage stop on map
+    private func buildQuadTree() {
+        // Control stops dictionary is not empty
+        guard !stopsDict.isEmpty else { return }
+        
+        let allStops = Array(stopsDict.values) // TODO, CHANGE THIS, BECAUSE CONVERT DICT TO ARRAY IN TWO PART OF CODE
+        
+        // Calcule one time lat and long
+        var minLat = allStops[0].latitude
+        var maxLat = allStops[0].latitude
+        var minLng = allStops[0].longitude
+        var maxLng = allStops[0].longitude
+        
+        // Iterate one time the list and create values for the Bounding Box
+        for stop in allStops {
+            if stop.latitude  < minLat { minLat = stop.latitude }
+            if stop.latitude  > maxLat { maxLat = stop.latitude }
+            if stop.longitude < minLng { minLng = stop.longitude }
+            if stop.longitude > maxLng { maxLng = stop.longitude }
+        }
+        
+        let tree = QuadTree<AllInfoStop>(
+            bounds: BoundingBox(minLat: minLat, maxLat: maxLat, minLng: minLng, maxLng: maxLng)
+        )
+        
+        for stop in allStops {
+            let _ = tree.insert(
+                coordinate: CLLocationCoordinate2D(
+                    latitude: stop.latitude,
+                    longitude: stop.longitude
+                ),
+                value: stop
+            )
+        }
+        
+        self.quadTree = tree
     }
 }

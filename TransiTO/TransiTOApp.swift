@@ -16,6 +16,7 @@ struct TransiTO_iOSApp: App {
     @StateObject private var gtfsStaticViewModel     = GTFSStaticViewModel()
     @StateObject private var arrivalsViewModel       = ArrivalsViewmodel()
 
+    // Body app
     var body: some Scene {
         WindowGroup {
             ContentView()

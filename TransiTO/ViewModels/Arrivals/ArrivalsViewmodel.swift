@@ -52,7 +52,6 @@ class ArrivalsViewmodel: ObservableObject {
     // MARK: - Public Methods
     func fetchStopArrivals(for stopId: String) async {
         errorMessage = nil
-        arrivals = [:]
         
         do {
             let gqlData = try await performGraphQLQuery(stopId: stopId)
@@ -152,6 +151,7 @@ class ArrivalsViewmodel: ObservableObject {
                 realtime: stop.realtime,
                 direction: stop.trip.tripHeadsign
             )
+            
             converted.append(arrival)
         }
         
@@ -201,4 +201,36 @@ class ArrivalsViewmodel: ObservableObject {
 
         return Int(ceil(interval / 60.0))
     }
+    
+    func getAllTimesRemainingArrivals(for nameStop: String, in line: String) -> [Int] {
+        let filtered = arrivals[nameStop]?.filter { $0.line == line } ?? []
+        let calendar = Calendar.current
+        let now = Date()
+
+        let futureArrivals: [Date] = filtered.compactMap { arrival in
+            let parts = arrival.schedule.split(separator: ":").compactMap { Int($0) }
+            guard parts.count >= 2 else { return nil }
+            
+            let hour = parts[0]
+            let minute = parts[1]
+            let second = (parts.count > 2) ? parts[2] : 0
+
+            var comps = calendar.dateComponents([.year, .month, .day], from: now)
+            comps.hour = hour
+            comps.minute = minute
+            comps.second = second
+
+            guard let dateToday = calendar.date(from: comps) else { return nil }
+            return (dateToday < now) ? calendar.date(byAdding: .day, value: 1, to: dateToday) : dateToday
+        }
+        .sorted()
+
+        let intervals = futureArrivals.map { arrival -> Int in
+            let interval = arrival.timeIntervalSince(now)
+            return interval <= 0 ? 0 : Int(ceil(interval / 60.0))
+        }
+
+        return intervals
+    }
+
 }

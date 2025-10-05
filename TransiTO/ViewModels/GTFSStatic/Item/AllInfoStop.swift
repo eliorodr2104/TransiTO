@@ -13,5 +13,5 @@ struct AllInfoStop: Codable, Identifiable, Equatable, Sendable {
     let city     : String
     let latitude : Double
     let longitude: Double
-    let routes   : [String]
+    let routes   : [RouteInfo]
 }

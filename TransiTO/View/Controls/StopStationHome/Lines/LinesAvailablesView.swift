@@ -30,14 +30,30 @@ struct LinesAvailablesView: View {
             LazyVStack(spacing: 14) {
                 
                 ForEach(stopInfo.routes, id: \.self) { line in
-                    
-                    LineRowStateView(
-                        line: line,
-                        stopCode: stopInfo.stopCode
-                        
-                    ) { direction in if let direct = direction { self.navigationViemModel.changeLineFocus(to: line, direction: direct) } }
+                    /// Get arrivals for view model
+                    let arrival = arrivalsViewModel.getLineArrivals(for: stopInfo.stopCode, in: line.shortName).first
+                                        
+                    if let currentArrival = arrival {
+                        LineRowStateView(
+                            arrival: currentArrival,
+                            stopCode: stopInfo.stopCode,
+                            typeVehicle: line.type
+                            
+                        ) { direction in
+                            if let direct = direction {
+                                self.navigationViemModel.changeLineFocus(
+                                    to: line.shortName,
+                                    direction: direct,
+                                    typeVehicle: line.type
+                                )
+                            }
+                        }
                         .id(line)
                         .padding(.bottom, lastItem == line ? 25 : 0)
+//                        .onAppear {
+//                            print("Line: \(line.shortName) is type \(line.type)")
+//                        }
+                    }
                     
                 }
             }
@@ -49,7 +65,7 @@ struct LinesAvailablesView: View {
                 while !Task.isCancelled {
                     await self.arrivalsViewModel.fetchStopArrivals(for: stopInfo.stopCode)
                                         
-                    try? await Task.sleep(nanoseconds: 2_000_000_000) // 45_000_000_000 = 45s
+                    try? await Task.sleep(nanoseconds: 45_000_000_000) // 45_000_000_000 = 45s
                 }
             }
         }
