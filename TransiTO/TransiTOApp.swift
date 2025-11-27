@@ -9,22 +9,14 @@ import SwiftUI
 
 @main
 struct TransiTO_iOSApp: App {
-    @StateObject private var locationManager         = LocationManager()
-    @StateObject private var navigationViewModel     = NavigationViewModel()
-    @StateObject private var favoritesStopsViewModel = FavoritesViewModel()
-
-    @StateObject private var gtfsStaticViewModel     = GTFSStaticViewModel()
-    @StateObject private var arrivalsViewModel       = ArrivalsViewmodel()
+    
+    @StateObject private var gtfsStaticViewModel = GTFSStaticViewModel()
 
     // Body app
     var body: some Scene {
         WindowGroup {
             ContentView()
-                .environmentObject(arrivalsViewModel)
                 .environmentObject(gtfsStaticViewModel)
-                .environmentObject(locationManager)
-                .environmentObject(navigationViewModel)
-                .environmentObject(favoritesStopsViewModel)
         }
     }
 }

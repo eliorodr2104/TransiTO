@@ -72,7 +72,11 @@ class GTFSStaticViewModel: ObservableObject {
                 Task { [weak self] in
                     guard let self = self else { return }
                     
-                    let results        = await self.searchIndex.search(currentQuery, maxResults: 100)
+                    let results = await self.searchIndex.search(
+						currentQuery,
+						maxResults: 100
+					)
+					
                     self.searchResults = results
                 }
 

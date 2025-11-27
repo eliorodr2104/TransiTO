@@ -8,8 +8,9 @@
 import SwiftUI
 
 struct ContentView: View {
-    @EnvironmentObject private var arrivalsViewModel  : ArrivalsViewmodel
-    @EnvironmentObject private var gtfsStaticViewModel: GTFSStaticViewModel
+	
+    @EnvironmentObject
+	private var gtfsStaticViewModel: GTFSStaticViewModel
     
     var body: some View {
         
@@ -18,12 +19,21 @@ struct ContentView: View {
             HomeView()
                 .disabled(gtfsStaticViewModel.isLoading)
             
-            if gtfsStaticViewModel.isLoading {
-                LoadingPopUp()
-            }
+            if gtfsStaticViewModel.isLoading { loadingPopUp }
                 
         }
     }
+	
+	private var loadingPopUp: some View {
+		VStack {
+			ProgressView("Update DataBase...")
+				.padding()
+				.background(.thinMaterial)
+				.cornerRadius(12)
+				.shadow(radius: 8)
+		}
+		.transition(.scale.combined(with: .opacity))
+	}
 }
 
 #Preview {
