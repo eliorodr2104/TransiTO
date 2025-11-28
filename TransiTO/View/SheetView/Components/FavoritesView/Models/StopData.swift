@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct InfoStop: Codable, Equatable, Hashable {
+struct StopData: Codable, Equatable, Hashable {
     let coordinates: Coordinates
     var lines: [Line]
 }

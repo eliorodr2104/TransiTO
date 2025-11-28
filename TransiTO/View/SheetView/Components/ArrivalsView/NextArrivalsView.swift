@@ -8,9 +8,8 @@
 import SwiftUI
 
 struct NextArrivalsView: View {
-    let remainingTimeArrivals: [Int]
     let arrivals: [Arrival]
-    
+	    
     var body: some View {
         
         VStack(alignment: .leading) {
@@ -19,39 +18,48 @@ struct NextArrivalsView: View {
                     .font(.title3)
                     .fontWeight(.semibold)
                 
-                if remainingTimeArrivals.count >= 3 {
+				if self.arrivals.count >= 3 {
                     Spacer()
                     
-                    Text("Ogni \(abs(remainingTimeArrivals[1] - remainingTimeArrivals[2])) min")
-                        .font(.footnote)
+					let minutes = self.arrivals[1].remainingMinutes -
+								  self.arrivals[2].remainingMinutes
+					
+					Text("Ogni \(abs(minutes)) min")
+                        .font(.caption)
                         .foregroundStyle(.secondary)
+						.fontDesign(.monospaced)
                 }
             }
             
-            ScrollView(.horizontal, showsIndicators: false) {
+            ScrollView(
+				.horizontal,
+				showsIndicators: false
+			) {
                 LazyHStack(spacing: 12) {
-                    ForEach(remainingTimeArrivals.indices, id: \.self) { index in
-                        let item     = remainingTimeArrivals[index]
-                        let realtime = index == 0 && arrivals[index].realtime
-
-                        VStack {
-                            Text("\(item) min")
-                                .font(.headline)
-							
-                            Text(realtime ? "In orario" : "Programmato")
-                                .foregroundStyle(realtime ? Color.accentColor : .secondary)
-                                .font(.caption)
-                        }
-                        .padding()
-                        .background(.thinMaterial)
-                        .clipShape(RoundedRectangle(cornerRadius: 16))
+					
+					ForEach(self.arrivals) { item in
+                        itemArrival(item)
                     }
                 }
-                .padding(.horizontal)
                 
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         .padding()
     }
+	
+	@ViewBuilder
+	private func itemArrival(_ arrival: Arrival) -> some View {
+		VStack {
+			Text("\(arrival.remainingMinutes) min")
+				.font(.headline)
+			
+			Text(arrival.realtime ? "In orario" : "Programmato")
+				.foregroundStyle(arrival.realtime ? Color.accentColor : .secondary)
+				.font(.caption)
+		}
+		.padding()
+		.background(.thinMaterial)
+		.clipShape(RoundedRectangle(cornerRadius: 16))
+	}
 }

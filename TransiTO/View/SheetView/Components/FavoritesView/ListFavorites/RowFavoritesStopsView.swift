@@ -31,7 +31,9 @@ struct RowFavoritesStops: View {
             ) {
                 
                 ForEach(favoritesViewModel.favoritesStops, id: \.self) { stopName in
-                    let coordinates = favoritesViewModel.favoriteslines[stopName]!.coordinates
+					
+					let coordinates = self.favoritesViewModel
+										  .favoriteslines[stopName]!.coordinates
                     
                     FavoriteStopItemView(nameStop: stopName) {
                         self.locationManager.moveCamera(

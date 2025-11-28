@@ -109,23 +109,26 @@ class QuadTree<T> {
     }
     
     func query(range: BoundingBox) -> [T] {
-        var results: [T] = []
-        
-        if !bounds.intersects(range) { return results }
-        
-        for point in points {
-            if range.contains(point.coordinate) {
-                results.append(point.value)
-            }
-        }
-        
-        if divided {
-            results += northeast!.query(range: range)
-            results += northwest!.query(range: range)
-            results += southeast!.query(range: range)
-            results += southwest!.query(range: range)
-        }
-        
-        return results
+		var results: [T] = []
+		results.reserveCapacity(100)
+		query(range: range, results: &results)
+		return results
     }
+	
+	private func query(range: BoundingBox, results: inout [T]) {
+		if !bounds.intersects(range) { return }
+		
+		for point in points {
+			if range.contains(point.coordinate) {
+				results.append(point.value)
+			}
+		}
+		
+		if divided {
+			northeast?.query(range: range, results: &results)
+			northwest?.query(range: range, results: &results)
+			southeast?.query(range: range, results: &results)
+			southwest?.query(range: range, results: &results)
+		}
+	}
 }

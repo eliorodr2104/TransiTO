@@ -71,17 +71,26 @@ struct BottomSheet: View {
     
 	/// header bottom sheet
 	private var headerBottomSheet: some View {
-		HStack(alignment: .center, spacing: 10) {
-			
-			// Title
-			titleBottomSheet()
 		
-			// Profile and close button
-			actionButton
+		ZStack {
+			BackdropBlurView(radius: 6)
+			
+			HStack {
+				
+				// Title
+				titleBottomSheet()
+				
+				Spacer()
+			
+				// Profile and close button
+				actionButton
+			}
+			.padding(.horizontal, 18)
+			.padding(.top, 12)
+			
 		}
-		.padding(.horizontal, 18)
 		.frame(height: 80)
-		.padding(.top, 5)
+		
 	}
     
     /// Title bottom sheet
@@ -104,11 +113,9 @@ struct BottomSheet: View {
 				.textInputAutocapitalization(.none)
 				
 			case .stopInfo:
-				Spacer()
 				titleStop()
-					.padding(.leading, 37)
 				
-			case .lineInfo:
+			case .departuresInfo:
 				titleLine()
 				Spacer()
 				
@@ -121,21 +128,31 @@ struct BottomSheet: View {
     /// Action button header
     private var actionButton: some View {
         Button {
-            
-			if self.isFocused || !self.gtfsStaticViewModel.searchQuery.isEmpty {
-                self.gtfsStaticViewModel.searchQuery = ""
-				self.isFocused = false
-                
-            } else { /* Action profile button */ }
-            
-            if let _ = self.navigationViewModel.stopSelected {
-				self.fetchTask?.cancel()
-				self.fetchTask = nil
-                
-				self.sheetDetent = .height(80)
-            }
-            
-            self.navigationViewModel.clear()
+			
+			switch self.navigationViewModel.stateView {
+				case .stopInfo:
+					self.fetchTask?.cancel()
+					self.fetchTask = nil
+					
+					self.sheetDetent = .height(80)
+					self.navigationViewModel.clear()
+					
+				case .departuresInfo:
+					self.navigationViewModel.stateView = .stopInfo
+					
+				case .searchStop, .home, .addFavorite:
+					if self.isFocused ||
+					   !self.gtfsStaticViewModel.searchQuery.isEmpty {
+						
+						self.gtfsStaticViewModel.searchQuery = ""
+						self.isFocused = false
+						
+						self.sheetDetent = .height(350)
+					}
+					
+					self.navigationViewModel.clear()
+					
+			}
 
         } label: {
             ZStack {
@@ -171,26 +188,32 @@ struct BottomSheet: View {
 		// Control stop select is not nil
 		if let stopInfo = self.navigationViewModel.stopSelected {
 			
-			// split name and get only right part
-			let name = stopInfo.stopName.split(
-				separator: " - ",
-				maxSplits: 1,
-				omittingEmptySubsequences: true
-			)
-			.map { $0.trimmingCharacters(in: .whitespaces) }
-			.last ?? stopInfo.stopName
-											
-			VStack(alignment: .center, spacing: 5) {
-				Text(name)
+			HStack {
+				Text("\(stopInfo.stopCode)")
+					.font(.headline)
+					.fontDesign(.monospaced)
+					.foregroundStyle(.secondary)
+					.padding(.vertical, 13)
+					.padding(.leading, 10)
+					.padding(.trailing, 5)
+				
+				Rectangle()
+					.frame(
+						width: 4,
+						height: 39
+					)
+					.clipShape(.capsule)
+ 					.padding(.trailing, 5)
+					.foregroundStyle(.gray.opacity(0.18))
+					
+				Text(stopInfo.stopName)
 					.font(.headline)
 					.fontWeight(.bold)
-				
-				Text("Stop: \(stopInfo.stopCode)")
-					.font(.footnote)
-					.foregroundStyle(.secondary)
+					.fontDesign(.rounded)
+					.lineLimit(2)
 				
 			}
-			.frame(maxWidth: .infinity, alignment: .center)
+			.frame(maxWidth: .infinity, alignment: .leading)
 			
 		} else { EmptyView() }
     }
@@ -202,25 +225,34 @@ struct BottomSheet: View {
 		// Control line selected is not nil
 		if let vehicle = self.navigationViewModel.lineSelected {
 			
-			HStack(spacing: 10) {
-				ZStack {
-					Circle()
-						.fill(.tint)
-						.frame(width: 40, height: 40)
-					
-					Text(vehicle.line)
-						.font(.title2)
-						.fontWeight(.bold)
-				}
+			HStack {
+				Image(systemName: vehicle.type.icon)
+					.font(.headline)
+					.fontDesign(.monospaced)
+					.foregroundStyle(.secondary)
+					.padding(.vertical, 13)
+					.padding(.leading, 10)
+					.padding(.trailing, 5)
+				
+				Rectangle()
+					.frame(
+						width: 4,
+						height: 39
+					)
+					.clipShape(.capsule)
+					.padding(.trailing, 5)
+					.foregroundStyle(.gray.opacity(0.18))
 				
 				VStack(alignment: .leading, spacing: 5) {
-					Text(vehicle.type.name)
-						.font(.title3)
+					Text("Linea \(vehicle.line)")
+						.font(.headline)
 						.fontWeight(.bold)
+						.fontDesign(.rounded)
 					
 					Text(vehicle.direction)
-						.font(.footnote)
+						.font(.caption)
 						.foregroundStyle(.secondary)
+						.fontDesign(.rounded)
 					
 				}
 			}
@@ -232,13 +264,13 @@ struct BottomSheet: View {
     /// Title add favorite stop
     private var titleAddStop: some View {
         
-		HStack(alignment: .center) {
+		HStack {
 			Text("Aggiungi fermata")
-				.font(.title3)
+				.font(.headline)
 				.fontWeight(.bold)
+				.fontDesign(.rounded)
 			
 		}
-		.frame(maxWidth: .infinity, alignment: .center)
     }
 	
 	// MARK: - Handlers

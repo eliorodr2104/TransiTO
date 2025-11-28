@@ -131,8 +131,8 @@ struct HomeView: View {
 	
 	@inline(__always)
 	private func handlerStopSelectChange(
-		_ oldValue: AllInfoStop?,
-		_ newValue: AllInfoStop?
+		_ oldValue: Stop?,
+		_ newValue: Stop?
 	) {
 		if (newValue != nil) { sheetDetent = .height(350) }
 	}

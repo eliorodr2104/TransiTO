@@ -5,9 +5,8 @@
 //  Created by Eliomar Alejandro Rodriguez Ferrer on 14/09/25.
 //
 
-struct AllInfoStop: Codable, Identifiable, Equatable, Sendable {
-    var id       : String { stopId }
-    let stopId   : String
+struct Stop: Codable, Identifiable, Equatable, Sendable {
+    var id       : String
     let stopCode : String
     let stopName : String
     let city     : String

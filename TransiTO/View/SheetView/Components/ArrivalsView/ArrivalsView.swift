@@ -19,12 +19,12 @@ struct ArrivalsView: View {
 	private var arrivals: [Arrival] = []
     
     let lineSelected: Vehicle
-    let stopSelected: AllInfoStop
+    let stopSelected: Stop
     
     init(
 		arrivalsViewModel: ArrivalsViewModel,
 		lineSelected	 : Vehicle,
-		stopSelected	 : AllInfoStop
+		stopSelected	 : Stop
 	) {
 		self.viewModel	  = arrivalsViewModel
         self.lineSelected = lineSelected
@@ -34,48 +34,15 @@ struct ArrivalsView: View {
     var body: some View {
         
         LazyVStack(spacing: 17) {
-            
-            NextArrivalsView(
-                remainingTimeArrivals: remainingTimeArrivals,
-                arrivals: arrivals
-            )
+            NextArrivalsView(arrivals: arrivals)
             
             vehicleStatus
-            
         }
-        .onAppear {
-			self.remainingTimeArrivals = self.viewModel.getAllTimesRemainingArrivals(
-				for: self.stopSelected.stopCode,
-				in: self.lineSelected.line
-            )
-            
-			self.arrivals = self.viewModel.getLineArrivals(
-				for: self.stopSelected.stopCode,
-				in: self.lineSelected.line
-            )
-        }
-        .task(id: self.stopSelected.id) {
-            
-            do {
-                while !Task.isCancelled {
-                    await self.viewModel.fetchStopArrivals(
-						for: self.stopSelected.stopCode
-					)
-                    
-                    self.remainingTimeArrivals = viewModel.getAllTimesRemainingArrivals(
-						for: self.stopSelected.stopCode,
-						in: self.lineSelected.line
-                    )
-                    
-					self.arrivals = self.viewModel.getLineArrivals(
-						for: self.stopSelected.stopCode,
-						in: self.lineSelected.line
-                    )
-                                        
-                    try? await Task.sleep(nanoseconds: 5_000_000_000) // 5s
-                }
-            }
-        }
+        .onAppear(perform: handlerOnAppear)
+        .task(
+			id: self.stopSelected.id,
+			handlerStopTask
+		)
         
     }
 	
@@ -102,6 +69,36 @@ struct ArrivalsView: View {
 			
 		}
 		.padding(.horizontal)
+	}
+	
+	// MARK: - Handlers
+	
+	private func handlerOnAppear() {
+		self.arrivals = self.viewModel.getLineArrivals(
+			for: self.stopSelected.stopCode,
+			in: self.lineSelected.line
+		)
+		
+		self.viewModel.getMinutesRemaining(&self.arrivals)
+	}
+	
+	private func handlerStopTask() async {
+		do {
+			while !Task.isCancelled {
+				await self.viewModel.fetchStopArrivals(
+					for: self.stopSelected.stopCode
+				)
+				
+				self.arrivals = self.viewModel.getLineArrivals(
+					for: self.stopSelected.stopCode,
+					in: self.lineSelected.line
+				)
+				
+				self.viewModel.getMinutesRemaining(&self.arrivals)
+									
+				try? await Task.sleep(nanoseconds: 5_000_000_000) // 5s
+			}
+		}
 	}
 	
 }

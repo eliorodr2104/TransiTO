@@ -7,10 +7,16 @@
 
 import CoreLocation
 
-struct Cluster: Identifiable {
-    let stops	  : [AllInfoStop]
+struct Cluster: Identifiable, Equatable {
+	let id		  : String
+    let stops	  : [Stop]
     let coordinate: CLLocationCoordinate2D
-    var count	  : Int { stops.count }
-    
-    var id: String { stops.map(\.id).sorted().joined(separator: "-") }
+	
+    var count: Int { stops.count }
+	
+	static func == (lhs: Cluster, rhs: Cluster) -> Bool {
+		return lhs.id == rhs.id &&
+			   lhs.coordinate.latitude == rhs.coordinate.latitude &&
+			   lhs.count == rhs.count
+	}
 }

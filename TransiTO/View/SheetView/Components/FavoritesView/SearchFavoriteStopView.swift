@@ -52,7 +52,7 @@ struct SearchFavoriteStopView: View {
                         ) {
                             self.favoritesViewModel.addStop(
                                 to: stop.stopCode,
-                                info: InfoStop(
+                                info: StopData(
                                     coordinates: Coordinates(
 										latitude: stop.latitude,
 										longitude: stop.longitude

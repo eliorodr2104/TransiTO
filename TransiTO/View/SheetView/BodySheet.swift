@@ -35,14 +35,14 @@ struct BodySheet: View {
 			case .stopInfo:
 				// Click stop and show them info, arrives and lines
 				if let currentStop = self.navigationViewModel.stopSelected {
-					LinesAvailablesView(
+					DeparturesLinesView(
 						viewModel: self.arrivalsViewModel,
 						changeLineFocus: self.navigationViewModel.changeLineFocus,
-						stopInfo: currentStop
+						stop: currentStop
 					)
 				}
 				
-			case .lineInfo:
+			case .departuresInfo:
 				// Show current arrival state
 				if let lineSelected = navigationViewModel.lineSelected,
 				   let stopSelected = navigationViewModel.stopSelected {
@@ -82,7 +82,7 @@ struct BodySheet: View {
 				.font(.title3)
 				.fontWeight(.bold)
 				.foregroundStyle(.primary)
-			
+						
 			// Lazy row contains prefered
 			RowFavoritesStops(
 				favoritesViewModel: self.favoritesViewModel,
@@ -91,7 +91,9 @@ struct BodySheet: View {
 			
 			) {
 				self.isFocused.wrappedValue = true
-				self.navigationViewModel.changeStateBottomSheet(to: .addFavorite)
+				self.navigationViewModel.changeStateBottomSheet(
+					to: .addFavorite
+				)
 			}
 			.padding(.leading, 10)
 			

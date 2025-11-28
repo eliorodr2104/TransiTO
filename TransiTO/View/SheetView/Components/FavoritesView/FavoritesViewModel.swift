@@ -10,7 +10,7 @@ internal import Combine
 
 class FavoritesViewModel: ObservableObject {
 
-    @Published var favoriteslines: [String: InfoStop] = [:]
+    @Published var favoriteslines: [String: StopData] = [:]
     @Published var favoritesStops: [String] = []
     
     private static let jsonStorageFile = "favorites_stops.json"
@@ -33,8 +33,11 @@ class FavoritesViewModel: ObservableObject {
         }
         
         do {
-            let data       = try Data(contentsOf: fileURL)
-            let decoded    = try JSONDecoder().decode([String: InfoStop].self, from: data)
+            let data = try Data(contentsOf: fileURL)
+            let decoded = try JSONDecoder().decode(
+				[String: StopData].self,
+				from: data
+			)
             favoriteslines = decoded
             
             updateStops()
@@ -57,7 +60,7 @@ class FavoritesViewModel: ObservableObject {
         }
     }
     
-    func addStop(to stopId: String, info infoStop: InfoStop) {
+    func addStop(to stopId: String, info infoStop: StopData) {
         if favoriteslines[stopId] == nil {
             favoriteslines[stopId] = infoStop
             

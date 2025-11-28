@@ -8,7 +8,7 @@
 enum StateView {
     case home
     case stopInfo
-    case lineInfo
+    case departuresInfo
     case searchStop
     case addFavorite
 }

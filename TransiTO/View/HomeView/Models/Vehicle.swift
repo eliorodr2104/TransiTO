@@ -12,9 +12,9 @@ struct Vehicle: Equatable {
 	
 }
 
-enum TypeVehicle: Int {
+enum TypeVehicle: Int, Sendable, Codable {
 	case tram  = 0
-	case metro = 2
+	case metro = 1
 	case bus   = 3
 	
 	var name: String {
@@ -23,6 +23,14 @@ enum TypeVehicle: Int {
 			case .bus  : "Bus"
 			case .tram : "Tram"
 			case .metro: "Metro"
+		}
+	}
+	
+	var icon: String {
+		switch self {
+			case .bus  : "bus.fill"
+			case .tram : "tram.fill"
+			case .metro: "m.square.fill"
 		}
 	}
 }

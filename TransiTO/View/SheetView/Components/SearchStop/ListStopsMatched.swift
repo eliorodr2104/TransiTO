@@ -25,9 +25,9 @@ struct ListStopsMatched: View {
         LazyVStack(
             alignment: .leading
         ) {
-            let listStops = gtfsStatic.searchResults
+			let listStops = self.gtfsStatic.searchResults
             
-            ForEach(listStops) { stop in
+			ForEach(listStops, id: \.id) { stop in
                 let isFirst = stop == listStops.first
                 let isLast  = stop == listStops.last
                 

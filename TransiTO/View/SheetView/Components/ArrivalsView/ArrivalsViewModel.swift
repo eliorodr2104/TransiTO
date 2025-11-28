@@ -15,9 +15,6 @@ class ArrivalsViewModel: ObservableObject {
 	var arrivals: [String: [Arrival]] = [:]
 	
     @Published
-	var favoriteStopsArrivals: [String: [Arrival]] = [:]
-    
-    @Published
 	var lastFetchDate: Date? = nil
 	
     @Published
@@ -26,7 +23,7 @@ class ArrivalsViewModel: ObservableObject {
     private static let graphQLEndpoint = "https://plan.muoversiatorino.it/otp/routers/mato/index/graphql"
     
     /// GraphQL Query
-    private let stopQuery = """
+    private static let stopQuery = """
         query ConsolidatedQuery($id: String!, $startTime: Long!, $timeRange: Int!, $numberOfDepartures: Int!) {
             stop(id: $id) {
                 ... on Stop {
@@ -58,12 +55,11 @@ class ArrivalsViewModel: ObservableObject {
     
     // MARK: - Public Methods
 	
-	
     func fetchStopArrivals(for stopId: String) async {
         errorMessage = nil
         
         do {
-            let gqlData = try await performGraphQLQuery(stopId: stopId)
+            let gqlData = try await performGraphQLQuery(stopId)
             let convertedArrivals = convertGraphQLToArrivals(gqlData)
             arrivals[stopId] = convertedArrivals
             
@@ -73,46 +69,9 @@ class ArrivalsViewModel: ObservableObject {
         }
     }
     
-    private func fetchStopsArrivals(for stopId: String) async {
-        errorMessage = nil
-        
-        do {
-            let gqlData = try await performGraphQLQuery(stopId: stopId)
-            let convertedArrivals = convertGraphQLToArrivals(gqlData)
-            favoriteStopsArrivals[stopId] = convertedArrivals
-            
-        } catch {
-            errorMessage = "Error GraphQL: \(error.localizedDescription)"
-            print(errorMessage!)
-        }
-    }
-    
-    func fetchFavoriteStopArrivals(
-		favoritesStops: [String],
-		updateAvailable: Binding<Bool>
-	) async {
-		
-        let now = Date()
-        
-        if let lastFetchDate, now.timeIntervalSince(lastFetchDate) < 1800 {
-            return
-        }
-        
-        updateAvailable.wrappedValue = true
-        favoriteStopsArrivals = [:]
-        
-        for stop in favoritesStops {
-            await fetchStopsArrivals(for: stop)
-        }
-        
-        lastFetchDate = now
-    }
-    
     // MARK: - GraphQL Handlers
     
-    private func performGraphQLQuery(
-		stopId: String
-	) async throws -> [GraphQLStopTime] {
+    private func performGraphQLQuery(_ stopId: String) async throws -> [GraphQLStopTime] {
 		
         guard let url = URL(string: Self.graphQLEndpoint) else {
             throw URLError(.badURL)
@@ -126,7 +85,7 @@ class ArrivalsViewModel: ObservableObject {
         ]
         
         let body: [String: Any] = [
-            "query": stopQuery,
+			"query": Self.stopQuery,
             "variables": variables
         ]
         
@@ -187,113 +146,97 @@ class ArrivalsViewModel: ObservableObject {
     
     func getLineArrivals(
 		for nameStop: String,
-		in line: String
+		in  line	: String
 		
 	) -> [Arrival] {
 		return arrivals[nameStop]?.filter { $0.line == line } ?? []
     }
-    
-    func getAvailableLines(
-		for nameStop: String,
-		in favoritesLine: [Line]
-	) -> Int {
+	
+	func getFirstArrival(
+		in nameStop: String,
+		_  line    : String
 		
-        let lineSet = Set(favoritesLine.map { $0.number })
-        let arrivalsLine = Set(
-			favoriteStopsArrivals[nameStop]?.map { $0.line } ?? []
-		)
-        
-        return arrivalsLine.intersection(lineSet).count
-    }
+	) -> Arrival? {
+		return self.arrivals[nameStop]?.first { $0.line == line } ?? nil
+	}
     
-    func getTimeRemainingArrival(
-		for nameStop: String,
-		in line: String
-	) -> Int? {
+	func getTimeRemainingArrival(_ arrival: Arrival) -> Int? {
 		
-        let filtered = arrivals[nameStop]?.filter { $0.line == line } ?? []
         let calendar = Calendar.current
         let now = Date()
 
-        let futureArrivals: [Date] = filtered.compactMap { arrival in
-            let parts = arrival.schedule.split(separator: ":").map { Int($0) }
-           
-			guard parts.count >= 2,
-                  let hour = parts[0],
-                  let minute = parts[1] else { return nil }
-            
-            let second = (parts.count > 2) ? (parts[2] ?? 0) : 0
+		let parts = arrival.schedule.split(separator: ":").map { Int($0) }
+	   
+		guard parts.count >= 2,
+			  let hour = parts[0],
+			  let minute = parts[1] else { return nil }
+		
+		let second = (parts.count > 2) ? (parts[2] ?? 0) : 0
 
-            var comps = calendar.dateComponents(
-				[.year, .month, .day],
-				from: now
-			)
-			
-            comps.hour   = hour
-            comps.minute = minute
-            comps.second = second
+		var comps = calendar.dateComponents(
+			[.year, .month, .day],
+			from: now
+		)
+		
+		comps.hour   = hour
+		comps.minute = minute
+		comps.second = second
 
-            guard let dateToday = calendar.date(from: comps) else { return nil }
-			
-            return (dateToday < now) ? calendar.date(
-				byAdding: .day,
-				value: 1,
-				to: dateToday
-			) : dateToday
-        }
-        .sorted()
+		guard let dateToday = calendar.date(from: comps) else { return nil }
+		
+		let date = (dateToday < now) ? calendar.date(
+			byAdding: .day,
+			value: 1,
+			to: dateToday
+		) : dateToday
 
-        guard let nextArrival = futureArrivals.first else { return nil }
 
-        let interval = nextArrival.timeIntervalSince(now)
+		let interval = date!.timeIntervalSince(now)
         if interval <= 0 { return 0 }
 
-        return Int(ceil(interval / 60.0))
+		return Int(ceil(interval / 60.0))
     }
     
-    func getAllTimesRemainingArrivals(
-		for nameStop: String,
-		in line: String
-	) -> [Int] {
+	func getMinutesRemaining(_ stopArrivals: inout [Arrival]) {
 		
-        let filtered = arrivals[nameStop]?.filter { $0.line == line } ?? []
-        let calendar = Calendar.current
-        let now		 = Date()
+		let calendar = Calendar.current
+        let now = Date()
 
-        let futureArrivals: [Date] = filtered.compactMap { arrival in
-            let parts = arrival.schedule
-								.split(separator: ":")
-								.compactMap { Int($0) }
+		for index in stopArrivals.indices {
 			
-            guard parts.count >= 2 else { return nil }
-            
-            let hour = parts[0]
-            let minute = parts[1]
-            let second = (parts.count > 2) ? parts[2] : 0
+			let arrival = stopArrivals[index]
+			
+			let parts = arrival.schedule.split(separator: ":").compactMap {
+				Int($0)
+			}
+			
+			guard parts.count >= 2 else { return }
+			
+			let hour = parts[0]
+			let minute = parts[1]
+			let second = (parts.count > 2) ? parts[2] : 0
 
-            var comps = calendar.dateComponents(
+			var comps = calendar.dateComponents(
 				[.year, .month, .day],
 				from: now
 			)
 			
-            comps.hour   = hour
-            comps.minute = minute
-            comps.second = second
+			comps.hour   = hour
+			comps.minute = minute
+			comps.second = second
 
-            guard let dateToday = calendar.date(from: comps) else { return nil }
-            return (dateToday < now) ? calendar.date(
+			guard let dateToday = calendar.date(from: comps) else { return }
+			
+			let date = (dateToday < now) ? calendar.date(
 				byAdding: .day,
 				value: 1,
 				to: dateToday
+				
 			) : dateToday
-        }
-        .sorted()
-
-        let intervals = futureArrivals.map { arrival -> Int in
-            let interval = arrival.timeIntervalSince(now)
-            return interval <= 0 ? 0 : Int(ceil(interval / 60.0))
-        }
-
-        return intervals
+						
+			let interval = date!.timeIntervalSince(now)
+					
+			stopArrivals[index].remainingMinutes = interval <= 0 ? 0 : Int(ceil(interval / 60.0))
+		}
     }
 }
