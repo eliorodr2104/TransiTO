@@ -177,12 +177,12 @@ class ArrivalsViewModel: ObservableObject {
 		]
 		
 		let formatter = DateFormatter()
-=		formatter.locale = Locale(identifier: "en_US_POSIX")
+		formatter.locale = Locale(identifier: "en_US_POSIX")
 		formatter.timeZone = TimeZone.current
 		
 		var parsedTime: Date?
 		
-=		for format in formatsToTry {
+		for format in formatsToTry {
 			formatter.dateFormat = format
 			if let date = formatter.date(from: scheduleString) {
 				parsedTime = date
