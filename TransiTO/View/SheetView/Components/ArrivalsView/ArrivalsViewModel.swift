@@ -161,42 +161,63 @@ class ArrivalsViewModel: ObservableObject {
 	}
     
 	func getTimeRemainingArrival(_ arrival: Arrival) -> Int? {
+		let now = Date()
+		let calendar = Calendar.current
 		
-        let calendar = Calendar.current
-        let now = Date()
-
-		let parts = arrival.schedule.split(separator: ":").map { Int($0) }
-	   
-		guard parts.count >= 2,
-			  let hour = parts[0],
-			  let minute = parts[1] else { return nil }
+		let scheduleString = arrival.schedule
+			.replacingOccurrences(of: "\u{202F}", with: " ")
+			.replacingOccurrences(of: "\u{00A0}", with: " ")
+			.trimmingCharacters(in: .whitespacesAndNewlines)
 		
-		let second = (parts.count > 2) ? (parts[2] ?? 0) : 0
-
-		var comps = calendar.dateComponents(
-			[.year, .month, .day],
-			from: now
-		)
+		let formatsToTry = [
+			"h:mm:ss a",  // Es: "4:08:34 PM"
+			"h:mm a",     // Es: "4:08 PM"
+			"HH:mm:ss",   // Es: "16:08:34"
+			"HH:mm"       // Es: "16:08"
+		]
 		
-		comps.hour   = hour
-		comps.minute = minute
-		comps.second = second
-
-		guard let dateToday = calendar.date(from: comps) else { return nil }
+		let formatter = DateFormatter()
+=		formatter.locale = Locale(identifier: "en_US_POSIX")
+		formatter.timeZone = TimeZone.current
 		
-		let date = (dateToday < now) ? calendar.date(
-			byAdding: .day,
-			value: 1,
-			to: dateToday
-		) : dateToday
-
-
-		let interval = date!.timeIntervalSince(now)
-        if interval <= 0 { return 0 }
-
+		var parsedTime: Date?
+		
+=		for format in formatsToTry {
+			formatter.dateFormat = format
+			if let date = formatter.date(from: scheduleString) {
+				parsedTime = date
+				break
+			}
+		}
+		
+		guard let timeDate = parsedTime else {
+			print("ERRORE CRITICO: Nessun formato ha funzionato per '\(scheduleString)'")
+			return nil
+		}
+		
+		let timeComponents = calendar.dateComponents([.hour, .minute, .second], from: timeDate)
+		
+		var nowComponents = calendar.dateComponents([.year, .month, .day], from: now)
+		nowComponents.hour = timeComponents.hour
+		nowComponents.minute = timeComponents.minute
+		nowComponents.second = timeComponents.second
+		
+		guard let targetDateToday = calendar.date(from: nowComponents) else { return nil }
+		
+		let finalDate: Date
+		if targetDateToday < now {
+			finalDate = calendar.date(byAdding: .day, value: 1, to: targetDateToday) ?? targetDateToday
+		} else {
+			finalDate = targetDateToday
+		}
+		
+		let interval = finalDate.timeIntervalSince(now)
+		if interval <= 0 { return 0 }
+		
 		return Int(ceil(interval / 60.0))
-    }
-    
+	}
+
+
 	func getMinutesRemaining(_ stopArrivals: inout [Arrival]) {
 		
 		let calendar = Calendar.current
