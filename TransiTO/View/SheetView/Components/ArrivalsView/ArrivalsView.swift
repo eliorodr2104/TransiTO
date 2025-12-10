@@ -79,7 +79,13 @@ struct ArrivalsView: View {
 			in: self.lineSelected.line
 		)
 		
-		self.viewModel.getMinutesRemaining(&self.arrivals)
+		for index in self.arrivals.indices {
+			let arrival = self.arrivals[index]
+			
+			if let time = self.viewModel.getMinutesRemaining(for: arrival) {
+				self.arrivals[index].remainingMinutes = time
+			}
+		}
 	}
 	
 	private func handlerStopTask() async {
@@ -89,12 +95,7 @@ struct ArrivalsView: View {
 					for: self.stopSelected.stopCode
 				)
 				
-				self.arrivals = self.viewModel.getLineArrivals(
-					for: self.stopSelected.stopCode,
-					in: self.lineSelected.line
-				)
-				
-				self.viewModel.getMinutesRemaining(&self.arrivals)
+				handlerOnAppear()
 									
 				try? await Task.sleep(nanoseconds: 5_000_000_000) // 5s
 			}

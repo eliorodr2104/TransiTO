@@ -42,10 +42,9 @@ struct DeparturesLinesView: View {
 						in: stop.stopCode,
 						line.shortName
 					)
-                                        
+					
 					if let currentArrival = arrival {
 						DepartureRowView(
-							remainingArrivalTime: self.viewModel.getTimeRemainingArrival,
 							arrival: currentArrival,
 							stopCode: stop.stopCode,
 							typeVehicle: line.type
@@ -87,3 +86,4 @@ struct DeparturesLinesView: View {
 		}
 	}
 }
+

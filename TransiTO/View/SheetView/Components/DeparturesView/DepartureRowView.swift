@@ -8,9 +8,7 @@
 import SwiftUI
 
 struct DepartureRowView: View {
-    
-	var remainingArrivalTime: (_ arrival: Arrival) -> Int?
-    
+        
 	var arrival    : Arrival
     let stopCode   : String
     let typeVehicle: TypeVehicle
@@ -54,16 +52,14 @@ struct DepartureRowView: View {
                 
                 Spacer()
                 
-				if let timeRemaining = self.remainingArrivalTime(arrival) {
-					Text("\(timeRemaining) min")
-						.font(.subheadline)
-						.fontDesign(.monospaced)
-						.foregroundStyle(
-							timeRemaining <= 5 ? .red :
-							timeRemaining <= 10 && timeRemaining > 5 ? .yellow :
-							.secondary
-						)
-				}				
+				Text("\(arrival.remainingMinutes) min")
+					.font(.subheadline)
+					.fontDesign(.monospaced)
+					.foregroundStyle(
+						arrival.remainingMinutes <= 5 ? .red :
+						arrival.remainingMinutes <= 10 && arrival.remainingMinutes > 5 ? .yellow :
+						.secondary
+					)
             }
         }
         .padding(15)
