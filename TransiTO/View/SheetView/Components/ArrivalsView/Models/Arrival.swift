@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct Arrival: Codable, Identifiable, Hashable {
+struct Arrival: Codable, Identifiable, Hashable, Equatable {
     
     let id       		: UUID = UUID()
     let line     		: String
@@ -37,5 +37,12 @@ struct Arrival: Codable, Identifiable, Hashable {
         case direction
 		case remainingMinutes
     }
+    
+    static let placeHolder = Arrival(
+        line: "9",
+        schedule: "21/49/2444",
+        realtime: true,
+        direction: "destination"
+    )
     
 }

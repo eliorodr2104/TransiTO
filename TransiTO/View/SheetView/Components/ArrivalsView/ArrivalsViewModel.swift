@@ -157,10 +157,12 @@ class ArrivalsViewModel: ObservableObject {
 		_  line    : String
 		
 	) -> Arrival? {
-		var arrival = self.arrivals[nameStop]?.first { $0.line == line }
+        guard self.arrivals[nameStop] != nil else { return nil }
+        
+        var arrival = self.arrivals[nameStop]?.first { $0.line == line } ?? Arrival.placeHolder
 
-		if let current = arrival {
-			arrival?.remainingMinutes = getMinutesRemaining(for: current)
+        if arrival != Arrival.placeHolder {
+			arrival.remainingMinutes = getMinutesRemaining(for: arrival)
 		}
 		
 		return arrival

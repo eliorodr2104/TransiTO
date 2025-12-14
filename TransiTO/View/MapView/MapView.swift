@@ -58,7 +58,10 @@ struct MapView: View {
 						pinSingleStop(cluster, cluster.stops[0])
 							.transition(
 								.scale.animation(
-									.spring(response: 0.3, dampingFraction: 0.6)
+									.spring(
+                                        response: 0.3,
+                                        dampingFraction: 0.6
+                                    )
 								)
 							)
 					}
@@ -177,8 +180,12 @@ struct MapView: View {
 						endPoint: .bottom
 					)
 				)
-				.stroke(.thickMaterial, lineWidth: 4)
+				.stroke(
+                    .thickMaterial,
+                    lineWidth: 4
+                )
 				.frame(width: 25, height: 25)
+                
 			
 			VStack(alignment: .leading) {
 				
@@ -188,7 +195,7 @@ struct MapView: View {
 					.fontDesign(.rounded)
 					.shadow(
 						color: .black,
-						radius: 3
+                        radius: 5
 					)
 					.lineLimit(1)
 				
@@ -198,7 +205,7 @@ struct MapView: View {
 					.fontDesign(.rounded)
 					.shadow(
 						color: .black,
-						radius: 3
+						radius: 5
 					)
 					.lineLimit(1)
 					.frame(maxWidth: 130, alignment: .leading)
@@ -311,11 +318,18 @@ struct MapView: View {
 			
 			let stopCodes = await tree.query(range: queryBox)
 			
-			let rawStops = await MainActor.run {
-				return stopCodes.compactMap { code in
-					return self.gtfsStaticViewModel.stopsDict[code]
-				}
-			}
+            let rawStops: [Stop] = await MainActor.run {
+                return stopCodes.compactMap { code in
+                    
+                    guard let stop = self.gtfsStaticViewModel.stopsDict[code],
+                          let _ = Int(stop.stopCode) else {
+                        return nil
+                    }
+                    
+                    return stop
+                }
+            }
+            
 			
 			let calculatedClusters = await MapView.clusterStopsByDistance(
 				stops: rawStops,
@@ -333,7 +347,7 @@ struct MapView: View {
 				} else { finalClusters = calculatedClusters }
 				
 				withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
-					self.visibleClusters = finalClusters
+                    self.visibleClusters = finalClusters
 				}
 			}
 		}
@@ -345,59 +359,50 @@ struct MapView: View {
 		minDistanceMeters: Double
 	) -> [Cluster] {
 		
-		// 1. Ordiniamo per latitudine. Questo è fondamentale per l'uscita anticipata dal ciclo interno.
+        
 		let sortedStops = stops.sorted { $0.latitude < $1.latitude }
 		let count = sortedStops.count
 		
-		// 2. Creiamo un registro "veloce" per segnare chi è già in un cluster
-		// L'accesso a questo array tramite indice è O(1)
+        
 		var isClustered = [Bool](repeating: false, count: count)
 		
 		var clusters: [Cluster] = []
 		
-		// Costanti pre-calcolate
-		let degreesPerMeter = 1.0 / 111_319.0
+
+        let degreesPerMeter = 1.0 / 111_319.0
 		let minDiffDegrees = minDistanceMeters * degreesPerMeter
 		let minDiffSquared = minDiffDegrees * minDiffDegrees
-		let lonCorrection = 0.707 // cos(45°) approssimato per Torino
+		let lonCorrection = 0.707
 		
-		// 3. Primo ciclo: Scorriamo le fermate come "candidate principali"
-		for i in 0..<count {
-			// Se questa fermata è già stata inglobata in un gruppo precedente, saltala (O(1))
+
+        for i in 0..<count {
+			
 			if isClustered[i] { continue }
 			
 			let mainStop = sortedStops[i]
 			
-			// Creiamo il nuovo gruppo
 			var currentClusterStops: [Stop] = [mainStop]
-			isClustered[i] = true // La segniamo come presa
+			isClustered[i] = true
 			
-			// 4. Secondo ciclo: Cerchiamo vicini solo in avanti (i+1)
 			for j in (i+1)..<count {
 				if isClustered[j] { continue }
 				
 				let otherStop = sortedStops[j]
 				let dLat = otherStop.latitude - mainStop.latitude
 				
-				// OTTIMIZZAZIONE CRUCIALE:
-				// Poiché l'array è ordinato, se la differenza di latitudine supera il limite,
-				// sappiamo che TUTTE le fermate successive saranno troppo lontane.
-				// Possiamo rompere il ciclo interno immediatamente.
 				if dLat > minDiffDegrees {
 					break
 				}
 				
-				// Calcolo distanza semplificato (Pitagora)
 				let dLon = (otherStop.longitude - mainStop.longitude) * lonCorrection
 				let distSquared = (dLat * dLat) + (dLon * dLon)
 				
 				if distSquared < minDiffSquared {
 					currentClusterStops.append(otherStop)
-					isClustered[j] = true // Segniamo anche questa come presa (O(1))
+					isClustered[j] = true
 				}
 			}
 			
-			// Calcolo centroide del cluster trovato
 			let clusterCount = Double(currentClusterStops.count)
 			let avgLat = currentClusterStops.map(\.latitude).reduce(0, +) / clusterCount
 			let avgLng = currentClusterStops.map(\.longitude).reduce(0, +) / clusterCount

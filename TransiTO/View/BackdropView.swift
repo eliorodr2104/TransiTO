@@ -3,7 +3,6 @@
 //  TransiTO
 //
 //  Created by Eliomar Alejandro Rodriguez Ferrer on 27/11/25.
-//
 // Posted by Dmitrii Guliagin, modified by community. See post 'Timeline' for change history
 // Retrieved 2025-11-27, License - CC BY-SA 4.0
 
@@ -36,6 +35,7 @@ struct BackdropBlurView: View {
 	
 	@ViewBuilder
 	var body: some View {
-		BackdropView().blur(radius: radius)
+		BackdropView()
+            .blur(radius: radius)
 	}
 }

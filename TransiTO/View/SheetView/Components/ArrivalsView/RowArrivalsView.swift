@@ -27,7 +27,8 @@ struct NextArrivalsView: View {
 					Text("Ogni \(abs(minutes)) min")
                         .font(.caption)
                         .foregroundStyle(.secondary)
-						.fontDesign(.monospaced)
+                        .fontDesign(.rounded)
+                        // .fontDesign(.monospaced) -> Not pretty font
                 }
             }
             
@@ -52,10 +53,13 @@ struct NextArrivalsView: View {
 	private func itemArrival(_ arrival: Arrival) -> some View {
 		VStack {
 			Text("\(arrival.remainingMinutes) min")
-				.font(.headline)
+                .fontWeight(.semibold)
+				.font(.subheadline)
 			
 			Text(arrival.realtime ? "In orario" : "Programmato")
-				.foregroundStyle(arrival.realtime ? Color.accentColor : .secondary)
+				.foregroundStyle(
+                    arrival.realtime ? Color.accentColor : .secondary
+                )
 				.font(.caption)
 		}
 		.padding()

@@ -164,7 +164,7 @@ struct BottomSheet: View {
                     Image(systemName: "xmark")
                         .font(.title2)
                         .fontWeight(.semibold)
-                        .foregroundStyle(.white)
+                        .foregroundStyle(.primary)
                         .frame(width: 48, height: 48)
                         .glassEffect(in: .circle)
                         .transition(.blurReplace)
