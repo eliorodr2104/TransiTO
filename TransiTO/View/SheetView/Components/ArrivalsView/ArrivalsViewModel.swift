@@ -159,18 +159,20 @@ class ArrivalsViewModel: ObservableObject {
 	) -> Arrival? {
 		var arrival = self.arrivals[nameStop]?.first { $0.line == line }
 
-		if let arr = arrival, let time = getMinutesRemaining(for: arr) {
-			arrival?.remainingMinutes = time
+		if let current = arrival {
+			arrival?.remainingMinutes = getMinutesRemaining(for: current)
 		}
 		
 		return arrival
 	}
     
-	func getMinutesRemaining(for arrival: Arrival) -> Int? {
+    func getMinutesRemaining(for arrival: Arrival?) -> Int { // Change to Int non nullable
+        guard arrival != nil else { return -1 }
+        
 		let now = Date()
 		let calendar = Calendar.current
 		
-		let scheduleString = arrival.schedule
+        let scheduleString = arrival!.schedule
 			.replacingOccurrences(of: "\u{202F}", with: " ")
 			.replacingOccurrences(of: "\u{00A0}", with: " ")
 			.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -199,9 +201,11 @@ class ArrivalsViewModel: ObservableObject {
 		
 		guard let components = timeComponents,
 			  let hour = components.hour,
-			  let minute = components.minute else {
-			print("Warning: Impossibile parsare l'orario: \(scheduleString)")
-			return nil
+			  let minute = components.minute
+        else {
+			print("Warning: Not possible parsing time: \(scheduleString)")
+			// return nil -> Change to default value...
+            return -1
 		}
 		
 		var targetComponents = calendar.dateComponents([.year, .month, .day], from: now)
@@ -209,14 +213,12 @@ class ArrivalsViewModel: ObservableObject {
 		targetComponents.minute = minute
 		targetComponents.second = components.second ?? 0
 		
-		guard let targetDateToday = calendar.date(from: targetComponents) else { return nil }
+		guard let targetDateToday = calendar.date(from: targetComponents) else { return -1 } // Change to default value...
 		
-		let finalDate: Date
-		if targetDateToday < now {
-			finalDate = calendar.date(byAdding: .day, value: 1, to: targetDateToday) ?? targetDateToday
-		} else {
-			finalDate = targetDateToday
-		}
+        let finalDate = if targetDateToday < now {
+            calendar.date(byAdding: .day, value: 1, to: targetDateToday) ?? targetDateToday
+            
+		} else { targetDateToday }
 		
 		let interval = finalDate.timeIntervalSince(now)
 		

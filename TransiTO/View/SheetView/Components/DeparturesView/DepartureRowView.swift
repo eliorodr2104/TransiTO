@@ -8,6 +8,10 @@
 import SwiftUI
 
 struct DepartureRowView: View {
+    
+    // Get current color scheme from devices
+    @Environment(\.colorScheme)
+    var colorScheme
         
 	var arrival    : Arrival
     let stopCode   : String
@@ -25,9 +29,11 @@ struct DepartureRowView: View {
 				alignment: .firstTextBaseline,
 				spacing  : 7
 			) {
-				Image(systemName: typeVehicle.icon)
+                Image(systemName: self.typeVehicle.icon)
 					.font(.headline)
-					.foregroundStyle(.primary)
+					.foregroundStyle(
+                        self.colorScheme == .dark ? .black : .white
+                    )
 					.padding(10)
 					.background {
 						Circle()
@@ -38,7 +44,7 @@ struct DepartureRowView: View {
 							)
 					}
                 
-                Text("Linea \(arrival.line)")
+                Text("Linea \(self.arrival.line)")
                     .font(.headline)
                     .foregroundStyle(.primary)
             }
@@ -46,21 +52,24 @@ struct DepartureRowView: View {
             Divider()
             
             HStack {
-				Text(arrival.direction.capitalized)
+                Text(self.arrival.direction.capitalized)
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                 
                 Spacer()
                 
-				Text("\(arrival.remainingMinutes) min")
+                Text("\(self.arrival.remainingMinutes) min")
 					.font(.subheadline)
-					.fontDesign(.monospaced)
-					.foregroundStyle(
-						arrival.remainingMinutes <= 5 ? .red :
-						arrival.remainingMinutes <= 10 && arrival.remainingMinutes > 5 ? .yellow :
-						.secondary
-					)
+                    .fontDesign(.rounded)
+					// .fontDesign(.monospaced) -> Not pretty font
+                    .foregroundStyle(.secondary)
+//					.foregroundStyle(
+//						arrival.remainingMinutes <= 5 ? .red :
+//						arrival.remainingMinutes <= 10 && arrival.remainingMinutes > 5 ? .yellow :
+//						.secondary
+//					)
             }
+            .id(self.arrival.id)
         }
         .padding(15)
         .background(.ultraThinMaterial)

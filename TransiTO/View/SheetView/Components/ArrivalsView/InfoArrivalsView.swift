@@ -82,9 +82,8 @@ struct ArrivalsView: View {
 		for index in self.arrivals.indices {
 			let arrival = self.arrivals[index]
 			
-			if let time = self.viewModel.getMinutesRemaining(for: arrival) {
-				self.arrivals[index].remainingMinutes = time
-			}
+            // More redeable because the value is not nil
+            self.arrivals[index].remainingMinutes = self.viewModel.getMinutesRemaining(for: arrival)
 		}
 	}
 	
